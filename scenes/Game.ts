@@ -10,6 +10,7 @@ export class Game extends Phaser.Scene {
   private roadWidth: number = 280; // será recalculado em create()
   private roadCenterX: number = 180; // será recalculado em create()
   private pointerOffsetX: number = 0;
+  private roadTileScale: number = 1; // escala aplicada ao tile da estrada (para casar velocidades)
 
   // Obstacles (Tarefa 3)
   private obstacles!: Phaser.Physics.Arcade.Group;
@@ -21,6 +22,13 @@ export class Game extends Phaser.Scene {
   private invincible: boolean = false;
   private slowDownUntil: number = 0; // timestamp this.time.now
   private hits: number = 0;
+
+  // Rampa de velocidade (dificuldade crescente)
+  private speedRamp: number = 0; // multiplicador incremental (0 => x1.0)
+  private readonly speedRampMax: number = 4.0; // até +200% (x3 no total)
+  private readonly speedRampStep: number = 0.15; // incremento por etapa
+  private readonly speedRampInterval: number = 3000; // ms entre incrementos
+  private speedRampEvent!: Phaser.Time.TimerEvent;
 
   constructor() {
     super('Game');
@@ -50,6 +58,9 @@ export class Game extends Phaser.Scene {
       // Use a maior escala para garantir cobertura completa
       const coverScale = Math.max(tileScaleX, tileScaleY);
       this.road.setTileScale(coverScale, coverScale);
+      this.roadTileScale = coverScale;
+    } else {
+      this.roadTileScale = 1;
     }
 
   // Criar carro do jogador (tamanho proporcional à tela)
@@ -79,6 +90,7 @@ export class Game extends Phaser.Scene {
   // Retomar spawner e rampa de dificuldade
   this.spawnEvent.paused = false;
   this.difficultyEvent.paused = false;
+  this.speedRampEvent.paused = false;
       }
     });
 
@@ -88,6 +100,7 @@ export class Game extends Phaser.Scene {
   // Pausar spawner e rampa de dificuldade
   this.spawnEvent.paused = true;
   this.difficultyEvent.paused = true;
+  this.speedRampEvent.paused = true;
     });
 
     // HUD de velocidade (debug)
@@ -108,13 +121,22 @@ export class Game extends Phaser.Scene {
 
   // Aumentar dificuldade a cada 15s (também pausado até dirigir)
   this.difficultyEvent = this.time.addEvent({ delay: 15000, callback: this.increaseDifficulty, callbackScope: this, loop: true, paused: true });
+
+  // Rampa de velocidade progressiva (inicia pausada; só progride quando dirigindo)
+  this.speedRampEvent = this.time.addEvent({
+    delay: this.speedRampInterval,
+    loop: true,
+    paused: true,
+    callback: () => this.increaseSpeedRamp()
+  });
   }
 
   update() {
-    // Atualizar velocidade baseado no estado driving + penalidade
+    // Atualizar velocidade baseado no estado driving + penalidade + rampa
     const penalized = this.time.now < this.slowDownUntil;
     if (this.driving) {
-      this.gameSpeed = (this.baseSpeed + this.driveBoost) * (penalized ? 0.6 : 1);
+      const rampMul = 1 + this.speedRamp;
+      this.gameSpeed = (this.baseSpeed + this.driveBoost) * rampMul * (penalized ? 0.6 : 1);
       
       // Steering suave - seguir o pointer
       if (this.input.activePointer.isDown) {
@@ -135,7 +157,8 @@ export class Game extends Phaser.Scene {
         this.carPlayer.rotation = Phaser.Math.Clamp(direction * 0.01, -maxRotation, maxRotation);
       }
     } else {
-      this.gameSpeed = this.baseSpeed;
+  const rampMul = 1 + this.speedRamp;
+  this.gameSpeed = this.baseSpeed * rampMul * (penalized ? 0.6 : 1);
       // Retornar rotação ao normal quando não está dirigindo
       this.carPlayer.rotation = Phaser.Math.Linear(this.carPlayer.rotation, 0, 0.1);
     }
@@ -146,9 +169,9 @@ export class Game extends Phaser.Scene {
     // Mover obstáculos para baixo conforme gameSpeed
     const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
     for (const obj of children) {
-      const s = obj as Phaser.Physics.Arcade.Sprite & { speedMul?: number };
-      const mul = s.speedMul ?? 1;
-      s.y += this.gameSpeed * mul;
+      const s = obj as Phaser.Physics.Arcade.Sprite;
+      // casar velocidade em pixels com o deslocamento visual da estrada (tilePositionY * tileScaleY)
+      s.y += this.gameSpeed * this.road.tileScaleY;
       // remover ao sair da tela
       if (s.y - s.displayHeight / 2 > this.cameras.main.height + 20) {
         s.destroy();
@@ -156,7 +179,11 @@ export class Game extends Phaser.Scene {
     }
 
     // Atualizar HUD de velocidade
-    this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'}`);
+    this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
+  }
+
+  private increaseSpeedRamp() {
+    this.speedRamp = Math.min(this.speedRampMax, this.speedRamp + this.speedRampStep);
   }
 
   // Spawner de obstáculos
@@ -176,11 +203,10 @@ export class Game extends Phaser.Scene {
     else if (roll < 0.7) key = 'carEnemy1'; // 30%
     else key = 'carEnemy2'; // 30%
 
-    const sprite = this.obstacles.create(x, -50, key) as Phaser.Physics.Arcade.Sprite & { speedMul?: number };
+  const sprite = this.obstacles.create(x, -50, key) as Phaser.Physics.Arcade.Sprite;
     sprite.setOrigin(0.5, 0.5);
     sprite.setImmovable(true);
     sprite.setDepth(1);
-    sprite.speedMul = key === 'pothole' ? 0.9 : 1.1; // carros descem um pouco mais rápido
     // Escala aproximada para combinar com a pista e o carro
     if (key === 'pothole') {
       // buraco menor
