@@ -141,10 +141,7 @@ export class Game extends Phaser.Scene {
     
   this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.isGameOver) {
-        // Reiniciar jogo ao tocar na tela no Game Over
-        if (this.restarting) return;
-        this.restarting = true;
-        this.scene.restart();
+        // Game Over é agora tratado pelo overlay específico
         return;
       }
       // Verificar se o ponteiro começou sobre o carro
@@ -189,8 +186,14 @@ export class Game extends Phaser.Scene {
       }).setDepth(10);
     }
 
-    // Iniciar cena UI paralela
-    this.scene.launch('UI');
+    // Iniciar cena UI paralela (garantir que seja relançada mesmo após restart)
+    if (!this.scene.isActive('UI')) {
+      this.scene.launch('UI');
+    }
+    
+    // Garantir que UI fique por cima após restart
+    this.scene.bringToTop('UI');
+    
   // Resetar HUD de inventário na UI e enviar vidas atuais
   this.game.events.emit('ui-reset-inventory');
   this.game.events.emit('ui-lives', { maxLives: this.maxLives, hits: this.hits });
@@ -623,25 +626,29 @@ export class Game extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver = true;
     this.driving = false;
+    
     // Pausar timers e física de obstáculos
     if (this.spawnEvent) this.spawnEvent.paused = true;
     if (this.difficultyEvent) this.difficultyEvent.paused = true;
     if (this.speedRampEvent) this.speedRampEvent.paused = true;
     this.physics.world.pause();
 
-    // Trazer cena para o topo para garantir prioridade de input
+    // Usar bringToTop apenas temporariamente para o input do Game Over
     this.scene.bringToTop();
-    // Overlay Game Over
+    
+    // Overlay Game Over com depth alto para ficar acima da UI temporariamente
     const { width, height } = this.cameras.main;
-    this.gameOverOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setDepth(5).setInteractive();
-    this.gameOverTitle = this.add.text(width / 2, height / 2 - 10, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(6);
-    this.gameOverTip = this.add.text(width / 2, height / 2 + 24, 'Toque para jogar novamente', { font: '16px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(6);
-    // Tap no overlay reinicia
+    this.gameOverOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75).setDepth(200).setInteractive();
+    this.gameOverTitle = this.add.text(width / 2, height / 2 - 10, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
+    this.gameOverTip = this.add.text(width / 2, height / 2 + 24, 'Toque para jogar novamente', { font: '16px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
+    
+    // Método simples para reiniciar
     this.gameOverOverlay.once('pointerdown', () => {
       if (this.restarting) return;
       this.restarting = true;
       this.scene.restart();
     });
+    
     // Fallback: qualquer toque também reinicia
     this.input.once('pointerdown', () => {
       if (this.restarting) return;

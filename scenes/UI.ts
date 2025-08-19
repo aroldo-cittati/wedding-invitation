@@ -17,6 +17,12 @@ export class UI extends Phaser.Scene {
   create() {
     const { width, height } = this.cameras.main;
     
+    // Limpar eventos anteriores para evitar duplicação
+    this.game.events.off('ui-checkpoint');
+    this.game.events.off('ui-reset-inventory');
+    this.game.events.off('ui-lives');
+    this.game.events.off('ui-invite');
+    
     // Criar HUD moderna com fundo arredondado
     this.createModernHUD(width, height);
 
@@ -45,6 +51,16 @@ export class UI extends Phaser.Scene {
     this.game.events.on('ui-invite', () => {
       this.showInviteOverlay();
     });
+  }
+
+  destroy() {
+    // Limpar todos os eventos quando a cena for destruída
+    this.game.events.off('ui-checkpoint');
+    this.game.events.off('ui-reset-inventory');
+    this.game.events.off('ui-lives');
+    this.game.events.off('ui-invite');
+    this.game.events.off('ui-checkpoint-closed');
+    this.game.events.off('ui-restart');
   }
 
   private createModernHUD(width: number, height: number) {
