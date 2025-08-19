@@ -32,6 +32,7 @@ export class Game extends Phaser.Scene {
   // Checkpoints & Inventário (Tarefa 5)
   private inventory = { key: false, map: false, ticket: false };
   private pausedForOverlay: boolean = false;
+  private spawningDisabled: boolean = false; // após o último item, não spawna mais inimigos
   private checkpoints!: Phaser.Physics.Arcade.Group;
   private cp1Timer!: Phaser.Time.TimerEvent;
   private cp2Timer!: Phaser.Time.TimerEvent;
@@ -44,6 +45,7 @@ export class Game extends Phaser.Scene {
   // Goal (Tarefa 7)
   private goalSprite?: Phaser.Physics.Arcade.Sprite;
   private goalSpawned: boolean = false;
+  private finalApproach: boolean = false;
 
   // Rampa de velocidade (dificuldade crescente)
   private speedRamp: number = 0; // multiplicador incremental (0 => x1.0)
@@ -65,6 +67,10 @@ export class Game extends Phaser.Scene {
   this.isGameOver = false;
   this.restarting = false;
   this.pausedForOverlay = false;
+  this.spawningDisabled = false;
+  this.finalApproach = false;
+  this.goalSpawned = false;
+  this.goalSprite = undefined;
   this.inventory = { key: false, map: false, ticket: false };
   this.invincible = false;
   this.hits = 0;
@@ -256,8 +262,10 @@ export class Game extends Phaser.Scene {
       this.carPlayer.rotation = Phaser.Math.Linear(this.carPlayer.rotation, 0, 0.1);
     }
 
-  // Fazer a estrada rolar para cima
-  this.road.tilePositionY -= this.gameSpeed;
+  // Fazer a estrada rolar para cima (desliga no final)
+  if (!this.finalApproach) {
+    this.road.tilePositionY -= this.gameSpeed;
+  }
 
     // Mover obstáculos para baixo conforme gameSpeed
     const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
@@ -299,14 +307,17 @@ export class Game extends Phaser.Scene {
 
     // Mover goal e verificar chegada
     if (this.goalSprite && this.goalSprite.active) {
-      this.goalSprite.y += this.gameSpeed * this.road.tileScaleY;
-      // Se alcançou a altura do carro, dispara o final
-      const thresholdY = this.carPlayer.y - this.carPlayer.displayHeight * 0.15;
-      if (this.goalSprite.y >= thresholdY) {
-        this.goalSprite.y = thresholdY;
-        this.triggerGoal();
+      const h = this.cameras.main.height;
+      const topStopY = h * 0.18; // topo da tela onde a casa "aparece"
+      if (!this.finalApproach) {
+        this.goalSprite.y += this.gameSpeed * this.road.tileScaleY;
+        if (this.goalSprite.y >= topStopY) {
+          // Casa chegou ao topo: fixar e iniciar abordagem final
+          this.goalSprite.y = topStopY;
+          this.startFinalApproach(topStopY);
+        }
       }
-      // Remover se sair da tela (fallback)
+      // Remover se sair da tela (fallback improvável)
       if (this.goalSprite.y - this.goalSprite.displayHeight / 2 > this.cameras.main.height + 40) {
         this.goalSprite.destroy();
         this.goalSprite = undefined;
@@ -322,6 +333,7 @@ export class Game extends Phaser.Scene {
   private spawnObstacle() {
   // Não spawnar se o jogador não estiver dirigindo
   if (!this.driving) return;
+  if (this.spawningDisabled) return;
 
    // Limite máximo na tela
     const maxOnScreen = 4; // ajuste conforme preferir
@@ -446,6 +458,10 @@ export class Game extends Phaser.Scene {
 
     // Se todos os itens foram coletados, agendar goal
     if (this.inventory.key && this.inventory.map && this.inventory.ticket && !this.goalSpawned) {
+      // Desativar novos inimigos definitivamente
+      this.spawningDisabled = true;
+      if (this.spawnEvent) this.spawnEvent.paused = true;
+      if (this.difficultyEvent) this.difficultyEvent.paused = true;
       this.time.delayedCall(this.goalSpawnDelay, () => this.spawnGoal());
     }
 
@@ -461,8 +477,8 @@ export class Game extends Phaser.Scene {
     // Aguardar fechamento do overlay para retomar
     const resume = () => {
       this.pausedForOverlay = false;
-      if (this.spawnEvent) this.spawnEvent.paused = !this.driving; // só retoma quando voltar a dirigir
-      if (this.difficultyEvent) this.difficultyEvent.paused = !this.driving;
+      if (this.spawnEvent) this.spawnEvent.paused = this.spawningDisabled || !this.driving; // não retoma após último item
+      if (this.difficultyEvent) this.difficultyEvent.paused = this.spawningDisabled || !this.driving;
       if (this.speedRampEvent) this.speedRampEvent.paused = !this.driving;
       this.game.events.off('ui-checkpoint-closed', resume);
     };
@@ -504,6 +520,37 @@ export class Game extends Phaser.Scene {
       this.scene.restart();
     };
     this.game.events.on('ui-restart', onRestart);
+  }
+
+  // Inicia a sequência final: parar a estrada e levar o carro até o topo
+  private startFinalApproach(goalY: number) {
+    if (this.finalApproach) return;
+    this.finalApproach = true;
+    // Congelar spawners para uma chegada limpa
+    if (this.spawnEvent) this.spawnEvent.paused = true;
+    if (this.difficultyEvent) this.difficultyEvent.paused = true;
+    if (this.speedRampEvent) this.speedRampEvent.paused = true;
+
+    // Reduzir gradualmente a velocidade
+    this.tweens.add({
+      targets: this,
+      gameSpeed: 0,
+      duration: 500,
+      ease: 'Sine.easeOut'
+    });
+
+    // Animar carro até próximo do topo
+    const targetY = goalY + (this.goalSprite ? this.goalSprite.displayHeight * 0.45 : 60);
+    this.tweens.add({
+      targets: this.carPlayer,
+      y: targetY,
+      duration: 700,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        // Mostrar convite
+        this.triggerGoal();
+      }
+    });
   }
 
   private triggerGameOver() {
