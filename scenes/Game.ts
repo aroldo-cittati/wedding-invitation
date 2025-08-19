@@ -6,9 +6,8 @@ export class Game extends Phaser.Scene {
   private baseSpeed: number = 2;
   private driveBoost: number = 6;
   private driving: boolean = false;
-  private speedText!: Phaser.GameObjects.Text;
-  private hitsText!: Phaser.GameObjects.Text;
-  private livesText!: Phaser.GameObjects.Text;
+  private speedText?: Phaser.GameObjects.Text;
+  private hitsText?: Phaser.GameObjects.Text;
   private gameOverOverlay?: Phaser.GameObjects.Rectangle;
   private gameOverTitle?: Phaser.GameObjects.Text;
   private gameOverTip?: Phaser.GameObjects.Text;
@@ -48,6 +47,8 @@ export class Game extends Phaser.Scene {
   private readonly speedRampStep: number = 0.15; // incremento por etapa
   private readonly speedRampInterval: number = 3000; // ms entre incrementos
   private speedRampEvent!: Phaser.Time.TimerEvent;
+  // HUD/Debug
+  private showDebugHUD: boolean = false; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
 
   constructor() {
     super('Game');
@@ -145,26 +146,23 @@ export class Game extends Phaser.Scene {
   this.speedRampEvent.paused = true;
     });
 
-    // HUD de velocidade (debug)
-  this.speedText = this.add.text(10, 10, `Velocidade: ${this.gameSpeed}`, {
-      font: '16px Arial',
-      color: '#ffffff'
-  }).setDepth(10);
-    // HUD de hits (debug) - na linha de baixo do texto de velocidade
-  this.hitsText = this.add.text(10, this.speedText.y + this.speedText.height + 6, `Hits: ${this.hits}` , {
-      font: '16px Arial',
-      color: '#ffffff'
-  }).setDepth(10);
-
-    // HUD de vidas (linha seguinte)
-  this.livesText = this.add.text(10, this.hitsText.y + this.hitsText.height + 6, '', {
-      font: '16px Arial',
-      color: '#ffffff'
-  }).setDepth(10);
-    this.updateLivesHUD();
+    // HUD de velocidade e hits (debug)
+    if (this.showDebugHUD) {
+      this.speedText = this.add.text(10, 10, `Velocidade: ${this.gameSpeed}`, {
+        font: '16px Arial',
+        color: '#ffffff'
+      }).setDepth(10);
+      this.hitsText = this.add.text(10, (this.speedText?.y || 10) + (this.speedText?.height || 0) + 6, `Hits: ${this.hits}`, {
+        font: '16px Arial',
+        color: '#ffffff'
+      }).setDepth(10);
+    }
 
     // Iniciar cena UI paralela
     this.scene.launch('UI');
+  // Resetar HUD de inventário na UI e enviar vidas atuais
+  this.game.events.emit('ui-reset-inventory');
+  this.game.events.emit('ui-lives', { maxLives: this.maxLives, hits: this.hits });
 
     // Bordas da pista (paredes invisíveis)
     this.sideWalls = this.physics.add.staticGroup();
@@ -218,7 +216,9 @@ export class Game extends Phaser.Scene {
     }
     if (this.isGameOver) {
       this.gameSpeed = 0;
-      this.speedText.setText(`Velocidade: 0.0 | Game Over`);
+      if (this.showDebugHUD && this.speedText) {
+        this.speedText.setText(`Velocidade: 0.0 | Game Over`);
+      }
       return;
     }
     // Atualizar velocidade baseado no estado driving + penalidade + rampa
@@ -289,7 +289,9 @@ export class Game extends Phaser.Scene {
     }
 
     // Atualizar HUD de velocidade
-    this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
+    if (this.showDebugHUD && this.speedText) {
+      this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
+    }
   }
 
   private increaseSpeedRamp() {
@@ -372,9 +374,10 @@ export class Game extends Phaser.Scene {
     const obstacle = object2 as Phaser.Physics.Arcade.Sprite;
     if (this.invincible) return;
     this.invincible = true;
-    this.hits += 1;
-    this.hitsText.setText(`Hits: ${this.hits}`);
-    this.updateLivesHUD();
+  this.hits += 1;
+  if (this.showDebugHUD && this.hitsText) this.hitsText.setText(`Hits: ${this.hits}`);
+  // informar UI
+  this.game.events.emit('ui-lives', { maxLives: this.maxLives, hits: this.hits });
 
     // Checar Game Over
     if (this.hits >= this.maxLives) {
@@ -441,13 +444,7 @@ export class Game extends Phaser.Scene {
     this.game.events.on('ui-checkpoint-closed', resume);
   }
 
-  private updateLivesHUD() {
-    const livesLeft = Math.max(0, this.maxLives - this.hits);
-    // Exibir corações cheios/vazios
-    const full = '❤️'.repeat(livesLeft);
-    const empty = '🤍'.repeat(this.maxLives - livesLeft);
-    this.livesText.setText(`Vidas: ${full}${empty}`);
-  }
+  // vidas HUD agora é responsabilidade da cena UI (via eventos ui-lives)
 
   private triggerGameOver() {
     if (this.isGameOver) return;
