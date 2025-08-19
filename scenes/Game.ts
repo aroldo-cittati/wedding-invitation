@@ -8,6 +8,7 @@ export class Game extends Phaser.Scene {
   private driving: boolean = false;
   private speedText?: Phaser.GameObjects.Text;
   private hitsText?: Phaser.GameObjects.Text;
+  private distanceText?: Phaser.GameObjects.Text;
   private gameOverOverlay?: Phaser.GameObjects.Rectangle;
   private gameOverTitle?: Phaser.GameObjects.Text;
   private gameOverTip?: Phaser.GameObjects.Text;
@@ -170,11 +171,19 @@ export class Game extends Phaser.Scene {
 
     // HUD de velocidade e hits (debug)
     if (this.showDebugHUD) {
-      this.speedText = this.add.text(10, 10, `Velocidade: ${this.gameSpeed}`, {
+      const centerY = height / 2;
+      
+      this.speedText = this.add.text(10, centerY - 30, `Vel: ${this.gameSpeed} | Rampa: x1.0`, {
         font: '16px Arial',
         color: '#ffffff'
       }).setDepth(10);
-      this.hitsText = this.add.text(10, (this.speedText?.y || 10) + (this.speedText?.height || 0) + 6, `Hits: ${this.hits}`, {
+      
+      this.hitsText = this.add.text(10, centerY, `Hits: ${this.hits} | Dirigindo: NÃO`, {
+        font: '16px Arial',
+        color: '#ffffff'
+      }).setDepth(10);
+      
+      this.distanceText = this.add.text(10, centerY + 30, `Distância: 0.0m`, {
         font: '16px Arial',
         color: '#ffffff'
       }).setDepth(10);
@@ -318,8 +327,16 @@ export class Game extends Phaser.Scene {
     }
 
     // Atualizar HUD de velocidade
-    if (this.showDebugHUD && this.speedText) {
-      this.speedText.setText(`Vel: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)} | Dist: ${this.distanceTraveled.toFixed(1)}m`);
+    if (this.showDebugHUD) {
+      if (this.speedText) {
+        this.speedText.setText(`Vel: ${this.gameSpeed.toFixed(1)} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
+      }
+      if (this.hitsText) {
+        this.hitsText.setText(`Hits: ${this.hits} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'}`);
+      }
+      if (this.distanceText) {
+        this.distanceText.setText(`Distância: ${this.distanceTraveled.toFixed(1)}m`);
+      }
     }
 
     // Mover goal e verificar chegada
@@ -455,7 +472,7 @@ export class Game extends Phaser.Scene {
     if (this.invincible) return;
     this.invincible = true;
   this.hits += 1;
-  if (this.showDebugHUD && this.hitsText) this.hitsText.setText(`Hits: ${this.hits}`);
+  if (this.showDebugHUD && this.hitsText) this.hitsText.setText(`Hits: ${this.hits} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'}`);
   // informar UI
   this.game.events.emit('ui-lives', { maxLives: this.maxLives, hits: this.hits });
 
