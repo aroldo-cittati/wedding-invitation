@@ -7,31 +7,18 @@ export class UI extends Phaser.Scene {
   private livesText!: Phaser.GameObjects.Text;
   private maxLives: number = 5;
   private hits: number = 0;
+  private hudContainer!: Phaser.GameObjects.Container;
+  private hudBackground!: Phaser.GameObjects.Graphics;
+  private iconOriginalScales!: { key: number; map: number; ticket: number };
 
   constructor() {
     super('UI');
   }
   create() {
-    // HUD fixo no topo (ícones de inventário)
     const { width, height } = this.cameras.main;
-    const margin = 10;
-    const gap = 8;
-    const targetH = Math.round(height * 0.06);
-
-    const iconY = margin + targetH / 2;
-    const keyX = margin + targetH / 2;
-    const mapX = keyX + targetH + gap;
-    const ticketX = mapX + targetH + gap;
-
-    const keyIcon = this.add.image(keyX, iconY, 'iconKey').setOrigin(0.5).setScrollFactor(0).setDepth(100);
-    const mapIcon = this.add.image(mapX, iconY, 'iconMap').setOrigin(0.5).setScrollFactor(0).setDepth(100);
-    const ticketIcon = this.add.image(ticketX, iconY, 'iconTicket').setOrigin(0.5).setScrollFactor(0).setDepth(100);
-    if (keyIcon.height) keyIcon.setScale(targetH / keyIcon.height);
-    if (mapIcon.height) mapIcon.setScale(targetH / mapIcon.height);
-    if (ticketIcon.height) ticketIcon.setScale(targetH / ticketIcon.height);
-
-    this.icons = { key: keyIcon, map: mapIcon, ticket: ticketIcon };
-    this.applyInventoryTint();
+    
+    // Criar HUD moderna com fundo arredondado
+    this.createModernHUD(width, height);
 
     // Overlays e eventos do Game
     this.game.events.on('ui-checkpoint', (payload: { item: 'key' | 'map' | 'ticket' }) => {
@@ -47,15 +34,6 @@ export class UI extends Phaser.Scene {
       this.applyInventoryTint();
     });
 
-    // HUD de vidas (embaixo dos ícones de inventário)
-    this.livesText = this.add.text(
-      margin,
-      iconY + targetH / 2 + 6,
-      '',
-      { font: '16px Arial', color: '#ffffff' }
-    ).setDepth(100).setScrollFactor(0);
-  this.updateLivesHUD();
-
     // Receber atualizações de vidas do Game
     this.game.events.on('ui-lives', (payload: { maxLives: number; hits: number }) => {
       this.maxLives = payload.maxLives;
@@ -67,6 +45,88 @@ export class UI extends Phaser.Scene {
     this.game.events.on('ui-invite', () => {
       this.showInviteOverlay();
     });
+  }
+
+  private createModernHUD(width: number, height: number) {
+    // Dimensões da HUD
+    const margin = 12;
+    const hudPadding = 8;
+    const iconSize = Math.round(height * 0.05);
+    const gap = 6;
+    
+    // Calcular tamanho total da HUD
+    const hudWidth = (iconSize * 3) + (gap * 2) + (hudPadding * 2);
+    const hudHeight = iconSize + 32 + (hudPadding * 2); // espaço para ícones + texto de vidas
+    
+    // Container principal da HUD
+    this.hudContainer = this.add.container(margin + hudWidth / 2, margin + hudHeight / 2);
+    this.hudContainer.setDepth(100).setScrollFactor(0);
+    
+    // Fundo da HUD com bordas arredondadas e efeito glassmorphism
+    this.hudBackground = this.add.graphics();
+    this.hudBackground.fillStyle(0x000000, 0.4);
+    this.hudBackground.fillRoundedRect(-hudWidth / 2, -hudHeight / 2, hudWidth, hudHeight, 8);
+    this.hudBackground.lineStyle(1, 0xffffff, 0.3);
+    this.hudBackground.strokeRoundedRect(-hudWidth / 2, -hudHeight / 2, hudWidth, hudHeight, 8);
+    
+    // Adicionar fundo ao container
+    this.hudContainer.add(this.hudBackground);
+    
+    // Posições dos ícones dentro do container
+    const startX = -hudWidth / 2 + hudPadding + iconSize / 2;
+    const iconsY = -hudHeight / 2 + hudPadding + iconSize / 2;
+    
+    const keyX = startX;
+    const mapX = startX + iconSize + gap;
+    const ticketX = startX + (iconSize + gap) * 2;
+
+    // Criar ícones com efeitos visuais melhorados
+    const keyIcon = this.add.image(keyX, iconsY, 'iconKey').setOrigin(0.5);
+    const mapIcon = this.add.image(mapX, iconsY, 'iconMap').setOrigin(0.5);
+    const ticketIcon = this.add.image(ticketX, iconsY, 'iconTicket').setOrigin(0.5);
+    
+    // Escalar ícones e armazenar escalas originais
+    const keyScale = iconSize / keyIcon.height;
+    const mapScale = iconSize / mapIcon.height;
+    const ticketScale = iconSize / ticketIcon.height;
+    
+    keyIcon.setScale(keyScale);
+    mapIcon.setScale(mapScale);
+    ticketIcon.setScale(ticketScale);
+    
+    // Armazenar escalas originais para manter consistência
+    this.iconOriginalScales = { 
+      key: keyScale, 
+      map: mapScale, 
+      ticket: ticketScale 
+    };
+    
+    // Adicionar efeito de brilho sutil aos ícones
+    keyIcon.setTint(0xffffff);
+    mapIcon.setTint(0xffffff);
+    ticketIcon.setTint(0xffffff);
+    
+    // Adicionar ícones ao container
+    this.hudContainer.add([keyIcon, mapIcon, ticketIcon]);
+
+    this.icons = { key: keyIcon, map: mapIcon, ticket: ticketIcon };
+    this.applyInventoryTint();
+
+    // Texto de vidas com estilo melhorado - mais espaçamento
+    this.livesText = this.add.text(
+      0,
+      iconsY + iconSize / 2 + 18,
+      '',
+      { 
+        font: 'bold 12px Arial', 
+        color: '#ffffff',
+        align: 'center',
+        shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
+      }
+    ).setOrigin(0.5);
+    
+    this.hudContainer.add(this.livesText);
+    this.updateLivesHUD();
   }
 
   private showCheckpointOverlay(item: 'key' | 'map' | 'ticket') {
@@ -326,21 +386,108 @@ export class UI extends Phaser.Scene {
   }
 
   private applyInventoryTint() {
-    const onTint = 0xffffff;
-    const offTint = 0x3a3a3a; // mais escuro para maior contraste
-    const onAlpha = 1.0;
-    const offAlpha = 0.35; // reduz opacidade quando não coletado
-
-    this.icons.key.setTint(this.inventory.key ? onTint : offTint).setAlpha(this.inventory.key ? onAlpha : offAlpha);
-    this.icons.map.setTint(this.inventory.map ? onTint : offTint).setAlpha(this.inventory.map ? onAlpha : offAlpha);
-    this.icons.ticket.setTint(this.inventory.ticket ? onTint : offTint).setAlpha(this.inventory.ticket ? onAlpha : offAlpha);
+    // Estados visuais dos itens
+    const collectedTint = 0xffffff;    // Branco brilhante para coletados
+    const collectedAlpha = 1.0;        // Totalmente opaco
+    const unCollectedTint = 0x666666;  // Cinza escuro para não coletados
+    const unCollectedAlpha = 0.4;      // Transparente
+    
+    // Aplicar estados visuais com animações
+    this.updateIconState(this.icons.key, this.inventory.key, collectedTint, collectedAlpha, unCollectedTint, unCollectedAlpha);
+    this.updateIconState(this.icons.map, this.inventory.map, collectedTint, collectedAlpha, unCollectedTint, unCollectedAlpha);
+    this.updateIconState(this.icons.ticket, this.inventory.ticket, collectedTint, collectedAlpha, unCollectedTint, unCollectedAlpha);
+  }
+  
+  private updateIconState(icon: Phaser.GameObjects.Image, collected: boolean, collectedTint: number, collectedAlpha: number, unCollectedTint: number, unCollectedAlpha: number) {
+    const targetTint = collected ? collectedTint : unCollectedTint;
+    const targetAlpha = collected ? collectedAlpha : unCollectedAlpha;
+    
+    // Determinar escala original baseada no ícone
+    let originalScale = 1;
+    if (icon === this.icons.key) originalScale = this.iconOriginalScales.key;
+    else if (icon === this.icons.map) originalScale = this.iconOriginalScales.map;
+    else if (icon === this.icons.ticket) originalScale = this.iconOriginalScales.ticket;
+    
+    // Se o item foi coletado recentemente, adicionar efeito de brilho
+    if (collected && icon.tint !== collectedTint) {
+      // Animação de "coletado" - pulso dourado
+      this.tweens.add({
+        targets: icon,
+        tint: 0xffdd00, // Dourado
+        scaleX: originalScale * 1.3,
+        scaleY: originalScale * 1.3,
+        duration: 200,
+        ease: 'Power2',
+        yoyo: true,
+        onComplete: () => {
+          // Voltar ao estado normal após o efeito
+          icon.setTint(targetTint);
+          icon.setScale(originalScale); // Usar escala original
+        }
+      });
+      
+      // Efeito de fade in do alpha
+      this.tweens.add({
+        targets: icon,
+        alpha: targetAlpha,
+        duration: 300,
+        ease: 'Power2'
+      });
+    } else {
+      // Aplicar estado normal sem animação, mantendo escala original
+      icon.setTint(targetTint);
+      icon.setAlpha(targetAlpha);
+      icon.setScale(originalScale);
+    }
   }
 
   private updateLivesHUD() {
     const livesLeft = Math.max(0, this.maxLives - this.hits);
-    const full = '❤️'.repeat(livesLeft);
-    const empty = '🤍'.repeat(this.maxLives - livesLeft);
-    this.livesText.setText(`Vidas: ${full}${empty}`);
+    
+    // Criar representação visual mais moderna das vidas usando emojis
+    let livesDisplay = '';
+    
+    // Corações vermelhos para vidas restantes
+    for (let i = 0; i < livesLeft; i++) {
+      livesDisplay += '❤️ ';
+    }
+    
+    // Corações quebrados para vidas perdidas
+    for (let i = 0; i < this.maxLives - livesLeft; i++) {
+      livesDisplay += '💔 ';
+    }
+    
+    this.livesText.setText(`${livesDisplay.trim()}`);
+    
+    // Garantir escala consistente
+    // this.livesText.setScale(1);
+    
+    // Efeito visual quando perde vida (sem alterar escala permanentemente)
+    if (this.hits > 0 && livesLeft > 0) {
+      // Animação de "pulso" no texto quando há dano
+      this.tweens.add({
+        targets: this.livesText,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 150,
+        yoyo: true,
+        ease: 'Power2',
+        onComplete: () => {
+          // Garantir que volta ao tamanho original
+          this.livesText.setScale(1);
+        }
+      });
+    }
+    
+    // Mudança de cor baseada na saúde (menos necessária com emojis coloridos)
+    if (livesLeft <= 1) {
+      // Manter cor branca para deixar os emojis naturais
+      this.livesText.setColor('#ffffff');
+    } else if (livesLeft <= 2) {
+      this.livesText.setColor('#ffffff');
+    } else {
+      this.livesText.setColor('#ffffff');
+    }
   }
 
   private showInviteOverlay() {

@@ -60,7 +60,7 @@ export class Game extends Phaser.Scene {
   private readonly speedRampInterval: number = 3000; // ms entre incrementos
   private speedRampEvent!: Phaser.Time.TimerEvent;
   // HUD/Debug
-  private showDebugHUD: boolean = true; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
+  private showDebugHUD: boolean = false; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
 
   constructor() {
     super('Game');
