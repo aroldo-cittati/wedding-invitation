@@ -63,7 +63,7 @@ export class UI extends Phaser.Scene {
     this.game.events.off('ui-restart');
   }
 
-  private createModernHUD(width: number, height: number) {
+  private createModernHUD(_width: number, height: number) {
     // Dimensões da HUD
     const margin = 12;
     const hudPadding = 8;

@@ -14,8 +14,7 @@ export class Game extends Phaser.Scene {
   private gameOverTip?: Phaser.GameObjects.Text;
   private roadWidth: number = 280; // será recalculado em create()
   private roadCenterX: number = 180; // será recalculado em create()
-  private pointerOffsetX: number = 0;
-  private roadTileScale: number = 1; // escala aplicada ao tile da estrada (para casar velocidades)
+  private pointerOffsetX: number = 0; // escala aplicada ao tile da estrada (para casar velocidades)
 
   // Obstacles (Tarefa 3)
   private obstacles!: Phaser.Physics.Arcade.Group;
@@ -95,9 +94,6 @@ export class Game extends Phaser.Scene {
   if (this.gameOverTitle) { this.gameOverTitle.destroy(); this.gameOverTitle = undefined; }
   if (this.gameOverTip) { this.gameOverTip.destroy(); this.gameOverTip = undefined; }
 
-    // Primeiro, adicionar um fundo de emergência para garantir que algo apareça
-    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x333333);
-
   // Calcular centro e largura "útil" da pista dinamicamente
   this.roadCenterX = width / 2;
   this.roadWidth = Math.floor(width * 0.78); // ~11% margem em cada lado
@@ -116,9 +112,6 @@ export class Game extends Phaser.Scene {
       // Use a maior escala para garantir cobertura completa
       const coverScale = Math.max(tileScaleX, tileScaleY);
       this.road.setTileScale(coverScale, coverScale);
-      this.roadTileScale = coverScale;
-    } else {
-      this.roadTileScale = 1;
     }
 
   // Criar carro do jogador (tamanho proporcional à tela)
@@ -407,7 +400,7 @@ export class Game extends Phaser.Scene {
     const maxOnScreen = 4; // ajuste conforme preferir
     if (this.obstacles.getLength() >= maxOnScreen) return;
 
-    const { width, height } = this.cameras.main;
+    const { height } = this.cameras.main;
     const roadLeft = this.roadCenterX - this.roadWidth / 3;
     const roadRight = this.roadCenterX + this.roadWidth / 3;
   // Ainda não sabemos a largura do sprite escalado; vamos definir o X após escalar
@@ -466,12 +459,10 @@ export class Game extends Phaser.Scene {
 
   // Colisão com obstáculos
   private onHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-    object1,
-    object2
+    _object1,
+    _object2
   ) => {
-    // Garantir que o primeiro é o player e o segundo é obstáculo
-    const player = object1 as Phaser.Physics.Arcade.Sprite;
-    const obstacle = object2 as Phaser.Physics.Arcade.Sprite;
+    // Verificar invencibilidade sem usar as variáveis player/obstacle
     if (this.invincible) return;
     this.invincible = true;
   this.hits += 1;
