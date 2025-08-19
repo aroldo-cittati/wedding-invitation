@@ -3,7 +3,7 @@ export class Game extends Phaser.Scene {
   private road!: Phaser.GameObjects.TileSprite;
   private carPlayer!: Phaser.Physics.Arcade.Sprite;
   private gameSpeed: number = 4;
-  private baseSpeed: number = 0;
+  private baseSpeed: number = 2;
   private driveBoost: number = 6;
   private driving: boolean = false;
   private speedText!: Phaser.GameObjects.Text;
@@ -190,6 +190,10 @@ export class Game extends Phaser.Scene {
   private spawnObstacle() {
   // Não spawnar se o jogador não estiver dirigindo
   if (!this.driving) return;
+
+   // Limite máximo na tela
+    const maxOnScreen = 5; // ajuste conforme preferir
+    if (this.obstacles.getLength() >= maxOnScreen) return;
 
     const { width, height } = this.cameras.main;
     const roadLeft = this.roadCenterX - this.roadWidth / 2;
