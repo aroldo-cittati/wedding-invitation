@@ -23,7 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 640
   },
   scene: [Boot, Preload, Game, UI],
-  parent: 'game-container'
+  parent: 'app'
 };
 
 window.addEventListener('load', () => {
