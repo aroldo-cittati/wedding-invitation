@@ -7,8 +7,9 @@ export class Game extends Phaser.Scene {
   private driveBoost: number = 6;
   private driving: boolean = false;
   private speedText!: Phaser.GameObjects.Text;
-  private roadWidth: number = 280;
-  private roadCenterX: number = 180;
+  private roadWidth: number = 280; // será recalculado em create()
+  private roadCenterX: number = 180; // será recalculado em create()
+  private pointerOffsetX: number = 0;
 
   constructor() {
     super('Game');
@@ -19,6 +20,10 @@ export class Game extends Phaser.Scene {
 
     // Primeiro, adicionar um fundo de emergência para garantir que algo apareça
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x333333);
+
+  // Calcular centro e largura "útil" da pista dinamicamente
+  this.roadCenterX = width / 2;
+  this.roadWidth = Math.floor(width * 0.78); // ~11% margem em cada lado
 
     // Criar estrada (tileSprite) - ocupando a tela toda
     this.road = this.add.tileSprite(width / 2, height / 2, width, height, 'road');
@@ -36,24 +41,36 @@ export class Game extends Phaser.Scene {
       this.road.setTileScale(coverScale, coverScale);
     }
 
-    // Criar carro do jogador
-    this.carPlayer = this.physics.add.sprite(this.roadCenterX, height - 100, 'carPlayer');
-    this.carPlayer.setOrigin(0.5, 0.5);
-    (this.carPlayer.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(false); // Vamos controlar manualmente
+  // Criar carro do jogador (tamanho proporcional à tela)
+  this.carPlayer = this.physics.add.sprite(this.roadCenterX, height - 100, 'carPlayer');
+  this.carPlayer.setOrigin(0.5, 0.5);
+
+  // Reduzir tamanho do carro mantendo proporção
+  const targetCarHeight = Math.round(height * 0.14); // ~14% da altura da tela
+  const scale = targetCarHeight / this.carPlayer.height;
+  this.carPlayer.setScale(scale);
+
+  // Ajustar corpo físico para o novo tamanho
+  const body = this.carPlayer.body as Phaser.Physics.Arcade.Body;
+  body.setCollideWorldBounds(false); // Vamos controlar manualmente
+  body.setSize(this.carPlayer.displayWidth, this.carPlayer.displayHeight, true);
 
     // Configurar input do carro (touch/mouse)
     this.carPlayer.setInteractive();
     
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+  this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       // Verificar se o ponteiro começou sobre o carro
       const bounds = this.carPlayer.getBounds();
       if (bounds.contains(pointer.x, pointer.y)) {
-        this.driving = true;
+    this.driving = true;
+    // Guardar offset para evitar "pulo" ao iniciar o toque
+    this.pointerOffsetX = this.carPlayer.x - pointer.x;
       }
     });
 
     this.input.on('pointerup', () => {
       this.driving = false;
+      this.pointerOffsetX = 0;
     });
 
     // HUD de velocidade (debug)
@@ -73,7 +90,7 @@ export class Game extends Phaser.Scene {
       
       // Steering suave - seguir o pointer
       if (this.input.activePointer.isDown) {
-        const targetX = this.input.activePointer.x;
+        const targetX = this.input.activePointer.x + this.pointerOffsetX;
         const lerpFactor = 0.15;
         
         // Aplicar LERP para movimento suave
