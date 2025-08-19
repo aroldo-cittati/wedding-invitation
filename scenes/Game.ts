@@ -11,6 +11,17 @@ export class Game extends Phaser.Scene {
   private roadCenterX: number = 180; // será recalculado em create()
   private pointerOffsetX: number = 0;
 
+  // Obstacles (Tarefa 3)
+  private obstacles!: Phaser.Physics.Arcade.Group;
+  private spawnEvent!: Phaser.Time.TimerEvent;
+  private spawnDelay: number = 900; // ms
+  private readonly minSpawnDelay: number = 500; // ms
+  private readonly spawnStep: number = 50; // ms por etapa de dificuldade
+  private difficultyEvent!: Phaser.Time.TimerEvent;
+  private invincible: boolean = false;
+  private slowDownUntil: number = 0; // timestamp this.time.now
+  private hits: number = 0;
+
   constructor() {
     super('Game');
   }
@@ -65,12 +76,18 @@ export class Game extends Phaser.Scene {
     this.driving = true;
     // Guardar offset para evitar "pulo" ao iniciar o toque
     this.pointerOffsetX = this.carPlayer.x - pointer.x;
+  // Retomar spawner e rampa de dificuldade
+  this.spawnEvent.paused = false;
+  this.difficultyEvent.paused = false;
       }
     });
 
     this.input.on('pointerup', () => {
       this.driving = false;
       this.pointerOffsetX = 0;
+  // Pausar spawner e rampa de dificuldade
+  this.spawnEvent.paused = true;
+  this.difficultyEvent.paused = true;
     });
 
     // HUD de velocidade (debug)
@@ -81,12 +98,23 @@ export class Game extends Phaser.Scene {
 
     // Iniciar cena UI paralela
     this.scene.launch('UI');
+
+  // Grupo de obstáculos e colisão (Tarefa 3)
+  this.obstacles = this.physics.add.group({ allowGravity: false });
+  this.physics.add.overlap(this.carPlayer, this.obstacles, this.onHit, undefined, this);
+
+  // Spawner periódico (inicia pausado para não acumular antes do jogador começar)
+  this.spawnEvent = this.time.addEvent({ delay: this.spawnDelay, callback: this.spawnObstacle, callbackScope: this, loop: true, paused: true });
+
+  // Aumentar dificuldade a cada 15s (também pausado até dirigir)
+  this.difficultyEvent = this.time.addEvent({ delay: 15000, callback: this.increaseDifficulty, callbackScope: this, loop: true, paused: true });
   }
 
   update() {
-    // Atualizar velocidade baseado no estado driving
+    // Atualizar velocidade baseado no estado driving + penalidade
+    const penalized = this.time.now < this.slowDownUntil;
     if (this.driving) {
-      this.gameSpeed = this.baseSpeed + this.driveBoost;
+      this.gameSpeed = (this.baseSpeed + this.driveBoost) * (penalized ? 0.6 : 1);
       
       // Steering suave - seguir o pointer
       if (this.input.activePointer.isDown) {
@@ -115,7 +143,94 @@ export class Game extends Phaser.Scene {
     // Fazer a estrada rolar para cima
     this.road.tilePositionY -= this.gameSpeed;
 
+    // Mover obstáculos para baixo conforme gameSpeed
+    const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
+    for (const obj of children) {
+      const s = obj as Phaser.Physics.Arcade.Sprite & { speedMul?: number };
+      const mul = s.speedMul ?? 1;
+      s.y += this.gameSpeed * mul;
+      // remover ao sair da tela
+      if (s.y - s.displayHeight / 2 > this.cameras.main.height + 20) {
+        s.destroy();
+      }
+    }
+
     // Atualizar HUD de velocidade
     this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'}`);
+  }
+
+  // Spawner de obstáculos
+  private spawnObstacle() {
+  // Não spawnar se o jogador não estiver dirigindo
+  if (!this.driving) return;
+
+    const { width, height } = this.cameras.main;
+    const roadLeft = this.roadCenterX - this.roadWidth / 2;
+    const roadRight = this.roadCenterX + this.roadWidth / 2;
+    const x = Phaser.Math.Between(Math.floor(roadLeft), Math.floor(roadRight));
+
+    // Escolher tipo
+    const roll = Math.random();
+    let key: 'carEnemy1' | 'carEnemy2' | 'pothole';
+    if (roll < 0.4) key = 'pothole'; // 40%
+    else if (roll < 0.7) key = 'carEnemy1'; // 30%
+    else key = 'carEnemy2'; // 30%
+
+    const sprite = this.obstacles.create(x, -50, key) as Phaser.Physics.Arcade.Sprite & { speedMul?: number };
+    sprite.setOrigin(0.5, 0.5);
+    sprite.setImmovable(true);
+    sprite.setDepth(1);
+    sprite.speedMul = key === 'pothole' ? 0.9 : 1.1; // carros descem um pouco mais rápido
+    // Escala aproximada para combinar com a pista e o carro
+    if (key === 'pothole') {
+      // buraco menor
+      const targetH = Math.round(height * 0.06);
+      sprite.setScale(targetH / sprite.height);
+    } else {
+      // inimigos um pouco menores que o player
+      const targetH = Math.round(height * 0.12);
+      sprite.setScale(targetH / sprite.height);
+    }
+  }
+
+  // Dificuldade: reduzir delay até mínimo
+  private increaseDifficulty() {
+    if (this.spawnDelay > this.minSpawnDelay) {
+      this.spawnDelay = Math.max(this.minSpawnDelay, this.spawnDelay - this.spawnStep);
+      // recriar evento com novo delay
+      this.spawnEvent.remove(false);
+      this.spawnEvent = this.time.addEvent({ delay: this.spawnDelay, callback: this.spawnObstacle, callbackScope: this, loop: true });
+    }
+  }
+
+  // Colisão com obstáculos
+  private onHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+    object1,
+    object2
+  ) => {
+    // Garantir que o primeiro é o player e o segundo é obstáculo
+    const player = object1 as Phaser.Physics.Arcade.Sprite;
+    const obstacle = object2 as Phaser.Physics.Arcade.Sprite;
+    if (this.invincible) return;
+    this.invincible = true;
+    this.hits += 1;
+
+    // Penalidade de velocidade por 1s
+    this.slowDownUntil = this.time.now + 1000;
+
+    // Blink no player
+    this.tweens.add({
+      targets: this.carPlayer,
+      alpha: 0.2,
+      duration: 100,
+      yoyo: true,
+      repeat: 5
+    });
+
+    // Fim da invencibilidade após 1s
+    this.time.delayedCall(1000, () => {
+      this.invincible = false;
+      this.carPlayer.setAlpha(1);
+    });
   }
 }
