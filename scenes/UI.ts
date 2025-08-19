@@ -7,6 +7,7 @@ export class UI extends Phaser.Scene {
   private livesText!: Phaser.GameObjects.Text;
   private maxLives: number = 5;
   private hits: number = 0;
+
   constructor() {
     super('UI');
   }
@@ -70,47 +71,253 @@ export class UI extends Phaser.Scene {
 
   private showCheckpointOverlay(item: 'key' | 'map' | 'ticket') {
     const { width, height } = this.cameras.main;
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6).setDepth(100).setInteractive();
-    const title = this.add.text(width / 2, height / 2 - 40, 'Checkpoint!', { font: '24px Arial', color: '#ffffff' })
+    
+    // Overlay de fundo
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+      .setDepth(100)
+      .setInteractive()
+      .setAlpha(0);
+    
+    // Animação de fade in do overlay
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.8,
+      duration: 300,
+      ease: 'Power2'
+    });
+
+    // Dimensões do modal
+    const modalWidth = Math.min(width * 0.85, 350);
+    const modalHeight = Math.min(height * 0.65, 420);
+    
+    // Sombra do modal
+    const modalShadow = this.add.rectangle(width / 2 + 4, height / 2 + 4, modalWidth, modalHeight, 0x000000, 0.3)
       .setOrigin(0.5)
       .setDepth(101);
 
-    const msg = item === 'key'
-      ? 'Você encontrou uma CHAVE!'
-      : item === 'map'
-      ? 'Você encontrou um MAPA!'
-      : 'Você encontrou um INGRESSO!';
-
-    const text = this.add.text(width / 2, height / 2, msg, { font: '18px Arial', color: '#ffffff', align: 'center', wordWrap: { width: width * 0.8 } })
+    // Modal principal
+    const modal = this.add.rectangle(width / 2, height / 2, modalWidth, modalHeight, 0xffffff, 1)
       .setOrigin(0.5)
-      .setDepth(101);
+      .setDepth(102)
+      .setStrokeStyle(3, 0x2c3e50);
 
-    // Ícone (se existir)
-    const iconKey = item === 'key' ? 'iconKey' : item === 'map' ? 'iconMap' : 'iconTicket';
-    const icon = this.add.image(width / 2, height / 2 + 50, iconKey).setOrigin(0.5).setDepth(101);
-    if (icon.height) {
-      const targetH = Math.round(height * 0.1);
-      icon.setScale(targetH / icon.height);
-    }
-
-    const btn = this.add.text(width / 2, height / 2 + 120, 'OK', { font: '20px Arial', color: '#000000', backgroundColor: '#ffffff' })
+    // Header colorido (inicialmente invisível)
+    const headerHeight = 60;
+    const header = this.add.rectangle(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, modalWidth, headerHeight, 0x3498db, 1)
       .setOrigin(0.5)
-      .setPadding(10, 6, 10, 6)
-      .setDepth(101)
-      .setInteractive({ useHandCursor: true });
+      .setDepth(103)
+      .setAlpha(0);
 
-    const close = () => {
-      overlay.destroy();
-      title.destroy();
-      text.destroy();
-      icon.destroy();
-      btn.destroy();
-      // Avisar Game para retomar
-      this.game.events.emit('ui-checkpoint-closed');
+    // Título principal (inicialmente invisível)
+    const title = this.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, '🎉 CHECKPOINT! 🎉', 
+      { 
+        font: 'bold 22px Arial', 
+        color: '#ffffff',
+        align: 'center'
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    // Animação de entrada do modal
+    modal.setScale(0.1);
+    modalShadow.setScale(0.1);
+    this.tweens.add({
+      targets: [modal, modalShadow],
+      scaleX: 1,
+      scaleY: 1,
+      duration: 400,
+      ease: 'Back.easeOut'
+    });
+
+    // Configurações específicas por item
+    const itemConfigs = {
+      key: {
+        title: 'CHAVE ENCONTRADA!',
+        message: 'Você encontrou a chave mágica!\nEla será útil no final da jornada.',
+        color: '#f39c12',
+        iconKey: 'iconKey'
+      },
+      map: {
+        title: 'MAPA DESCOBERTO!',
+        message: 'Um mapa antigo foi revelado!\nEle mostra o caminho para o destino.',
+        color: '#27ae60',
+        iconKey: 'iconMap'
+      },
+      ticket: {
+        title: 'INGRESSO OBTIDO!',
+        message: 'Você conquistou o ingresso especial!\nAgora você tem tudo que precisa!',
+        color: '#e74c3c',
+        iconKey: 'iconTicket'
+      }
     };
 
-    overlay.once('pointerdown', close);
-    btn.once('pointerdown', close);
+    const config = itemConfigs[item];
+
+    // Ícone do item com animação (inicialmente invisível)
+    const icon = this.add.image(width / 2, height / 2 - 60, config.iconKey)
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+    
+    if (icon.height) {
+      const targetSize = Math.round(height * 0.12);
+      icon.setScale(targetSize / icon.height);
+    }
+
+    // Título do item coletado (inicialmente invisível)
+    const itemTitle = this.add.text(width / 2, height / 2 - 5, config.title, 
+      { 
+        font: 'bold 20px Arial', 
+        color: config.color,
+        align: 'center'
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    // Mensagem descritiva (inicialmente invisível)
+    const description = this.add.text(width / 2, height / 2 + 40, config.message, 
+      { 
+        font: '16px Arial', 
+        color: '#2c3e50',
+        align: 'center',
+        wordWrap: { width: modalWidth - 40 }
+      })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    // Botão para continuar (inicialmente invisível)
+    const buttonWidth = 160;
+    const buttonHeight = 50;
+    const buttonY = height / 2 + modalHeight / 2 - 40;
+
+    const button = this.add.rectangle(width / 2, buttonY, buttonWidth, buttonHeight, 0x2ecc71, 1)
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setInteractive({ useHandCursor: true })
+      .setStrokeStyle(2, 0x27ae60)
+      .setAlpha(0);
+
+    const buttonText = this.add.text(width / 2, buttonY, 'CONTINUAR', 
+      { 
+        font: 'bold 18px Arial', 
+        color: '#ffffff'
+      })
+      .setOrigin(0.5)
+      .setDepth(105)
+      .setAlpha(0);
+
+    // Animação dos conteúdos após o modal abrir (com delay)
+    this.time.delayedCall(450, () => {
+      // Fade in do header e título
+      this.tweens.add({
+        targets: [header, title],
+        alpha: 1,
+        duration: 300,
+        ease: 'Power2'
+      });
+
+      // Fade in e rotação do ícone
+      this.tweens.add({
+        targets: icon,
+        alpha: 1,
+        rotation: 2 * Math.PI,
+        duration: 600,
+        ease: 'Power2'
+      });
+
+      // Fade in do título do item com delay
+      this.tweens.add({
+        targets: itemTitle,
+        alpha: 1,
+        duration: 300,
+        delay: 200,
+        ease: 'Power2'
+      });
+
+      // Fade in da descrição com delay
+      this.tweens.add({
+        targets: description,
+        alpha: 1,
+        duration: 300,
+        delay: 300,
+        ease: 'Power2'
+      });
+
+      // Fade in do botão com delay
+      this.tweens.add({
+        targets: [button, buttonText],
+        alpha: 1,
+        duration: 300,
+        delay: 400,
+        ease: 'Power2'
+      });
+    });
+
+    // Efeitos interativos do botão
+    button.on('pointerover', () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 200,
+        ease: 'Power2'
+      });
+      button.setFillStyle(0x27ae60);
+    });
+
+    button.on('pointerout', () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: 'Power2'
+      });
+      button.setFillStyle(0x2ecc71);
+    });
+
+    // Todos os elementos do modal
+    const allElements = [overlay, modalShadow, modal, header, title, icon, itemTitle, description, button, buttonText];
+
+    const closeModal = () => {
+      // Primeiro fade out dos conteúdos
+      this.tweens.add({
+        targets: [header, title, icon, itemTitle, description, button, buttonText],
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2.easeIn',
+        onComplete: () => {
+          // Depois animação de saída do modal
+          this.tweens.add({
+            targets: [modal, modalShadow],
+            scaleX: 0.1,
+            scaleY: 0.1,
+            duration: 300,
+            ease: 'Power2.easeIn'
+          });
+
+          this.tweens.add({
+            targets: overlay,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              // Limpar todos os elementos
+              allElements.forEach(element => element.destroy());
+              // Avisar o jogo para continuar
+              this.game.events.emit('ui-checkpoint-closed');
+            }
+          });
+        }
+      });
+    };
+
+    // Eventos de fechamento
+    overlay.once('pointerdown', closeModal);
+    button.once('pointerdown', closeModal);
   }
 
   private applyInventoryTint() {
@@ -170,7 +377,7 @@ export class UI extends Phaser.Scene {
       btnReplay.destroy();
     };
 
-    btnMaps.on('pointerup', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event?: Phaser.Types.Input.EventData) => {
+    btnMaps.on('pointerup', (_pointer: any, _localX: any, _localY: any, event: any) => {
       if (event && event.stopPropagation) event.stopPropagation();
       if (!INVITE.inviteUrl) return;
       const win = window.open(INVITE.inviteUrl, '_blank');
