@@ -34,13 +34,18 @@ export class Game extends Phaser.Scene {
   private pausedForOverlay: boolean = false;
   private spawningDisabled: boolean = false; // após o último item, não spawna mais inimigos
   private checkpoints!: Phaser.Physics.Arcade.Group;
-  private cp1Timer!: Phaser.Time.TimerEvent;
-  private cp2Timer!: Phaser.Time.TimerEvent;
-  private cp3Timer!: Phaser.Time.TimerEvent;
-  private readonly cp1Delay: number = 1000 * 1;  // segundos
-  private readonly cp2Delay: number = 1000 * 2; // segundos
-  private readonly cp3Delay: number = 1000 * 3; // segundos
-  private readonly goalSpawnDelay: number = 1000 * 5; // segundos após coletar o último item
+  
+  // Sistema de distância por metros
+  private distanceTraveled: number = 0; // metros percorridos
+  private readonly metersPerPixel: number = 0.1; // conversão pixel para metro (ajuste conforme necessário)
+  private readonly cp1Distance: number = 1000;  // metros para aparecer a chave
+  private readonly cp2Distance: number = 3000;  // metros para aparecer o mapa
+  private readonly cp3Distance: number = 6000;  // metros para aparecer o ticket
+  private readonly goalSpawnDistance: number = 1000; // metros após coletar o último item
+  private cp1Spawned: boolean = false;
+  private cp2Spawned: boolean = false;
+  private cp3Spawned: boolean = false;
+  private lastCheckpointCollected: number = 0; // distância quando coletou o último checkpoint
   private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
   // Goal (Tarefa 7)
   private goalSprite?: Phaser.Physics.Arcade.Sprite;
@@ -54,7 +59,7 @@ export class Game extends Phaser.Scene {
   private readonly speedRampInterval: number = 3000; // ms entre incrementos
   private speedRampEvent!: Phaser.Time.TimerEvent;
   // HUD/Debug
-  private showDebugHUD: boolean = false; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
+  private showDebugHUD: boolean = true; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
 
   constructor() {
     super('Game');
@@ -76,6 +81,12 @@ export class Game extends Phaser.Scene {
   this.hits = 0;
   this.slowDownUntil = 0;
   this.speedRamp = 0;
+  // Reset das variáveis de distância
+  this.distanceTraveled = 0;
+  this.cp1Spawned = false;
+  this.cp2Spawned = false;
+  this.cp3Spawned = false;
+  this.lastCheckpointCollected = 0;
   // Garantir que a física esteja ativa
   this.physics.world.resume();
   // Remover overlays antigos (se houver)
@@ -213,10 +224,7 @@ export class Game extends Phaser.Scene {
     callback: () => this.increaseSpeedRamp()
   });
 
-  // Agendar checkpoints ao longo do tempo
-  this.cp1Timer = this.time.delayedCall(this.cp1Delay, () => this.spawnCheckpoint('key'));
-  this.cp2Timer = this.time.delayedCall(this.cp2Delay, () => this.spawnCheckpoint('map'));
-  this.cp3Timer = this.time.delayedCall(this.cp3Delay, () => this.spawnCheckpoint('ticket'));
+  // Os checkpoints agora são spawned baseado na distância percorrida (no método update)
   }
 
   update() {
@@ -268,6 +276,14 @@ export class Game extends Phaser.Scene {
     this.road.tilePositionY -= this.gameSpeed;
   }
 
+    // Calcular distância percorrida baseada na velocidade do jogo
+    if (this.gameSpeed > 0) {
+      this.distanceTraveled += this.gameSpeed * this.metersPerPixel;
+    }
+
+    // Verificar spawn de checkpoints baseado na distância
+    this.checkDistanceCheckpoints();
+
     // Mover obstáculos para baixo conforme gameSpeed
     const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
     for (const obj of children) {
@@ -303,7 +319,7 @@ export class Game extends Phaser.Scene {
 
     // Atualizar HUD de velocidade
     if (this.showDebugHUD && this.speedText) {
-      this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
+      this.speedText.setText(`Vel: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)} | Dist: ${this.distanceTraveled.toFixed(1)}m`);
     }
 
     // Mover goal e verificar chegada
@@ -328,6 +344,37 @@ export class Game extends Phaser.Scene {
 
   private increaseSpeedRamp() {
     this.speedRamp = Math.min(this.speedRampMax, this.speedRamp + this.speedRampStep);
+  }
+
+  // Verificar se é hora de spawnar checkpoints baseado na distância percorrida
+  private checkDistanceCheckpoints() {
+    // Checkpoint 1: Chave
+    if (!this.cp1Spawned && this.distanceTraveled >= this.cp1Distance) {
+      this.cp1Spawned = true;
+      this.spawnCheckpoint('key');
+    }
+    
+    // Checkpoint 2: Mapa
+    if (!this.cp2Spawned && this.distanceTraveled >= this.cp2Distance) {
+      this.cp2Spawned = true;
+      this.spawnCheckpoint('map');
+    }
+    
+    // Checkpoint 3: Ticket
+    if (!this.cp3Spawned && this.distanceTraveled >= this.cp3Distance) {
+      this.cp3Spawned = true;
+      this.spawnCheckpoint('ticket');
+    }
+    
+    // Goal: se todos os itens foram coletados e já passou a distância necessária após o último
+    if (this.inventory.key && this.inventory.map && this.inventory.ticket && 
+        !this.goalSpawned && this.lastCheckpointCollected > 0 && 
+        this.distanceTraveled >= this.lastCheckpointCollected + this.goalSpawnDistance) {
+      this.spawningDisabled = true;
+      if (this.spawnEvent) this.spawnEvent.paused = true;
+      if (this.difficultyEvent) this.difficultyEvent.paused = true;
+      this.spawnGoal();
+    }
   }
 
   // Spawner de obstáculos
@@ -457,13 +504,14 @@ export class Game extends Phaser.Scene {
     if (item === 'map') this.inventory.map = true;
     if (item === 'ticket') this.inventory.ticket = true;
 
-    // Se todos os itens foram coletados, agendar goal
+    // Se todos os itens foram coletados, marcar distância para spawnar goal
     if (this.inventory.key && this.inventory.map && this.inventory.ticket && !this.goalSpawned) {
+      this.lastCheckpointCollected = this.distanceTraveled;
       // Desativar novos inimigos definitivamente
       this.spawningDisabled = true;
       if (this.spawnEvent) this.spawnEvent.paused = true;
       if (this.difficultyEvent) this.difficultyEvent.paused = true;
-      this.time.delayedCall(this.goalSpawnDelay, () => this.spawnGoal());
+      // O goal será spawnado no checkDistanceCheckpoints quando a distância for atingida
     }
 
     // Pausar jogabilidade e mostrar overlay na UI
