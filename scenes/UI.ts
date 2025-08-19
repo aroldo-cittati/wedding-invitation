@@ -345,56 +345,236 @@ export class UI extends Phaser.Scene {
 
   private showInviteOverlay() {
     const { width, height } = this.cameras.main;
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setDepth(200).setInteractive();
+    
+    // Overlay de fundo com animação
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+      .setDepth(200)
+      .setInteractive()
+      .setAlpha(0);
+    
+    // Animação de fade in do overlay
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.8,
+      duration: 300,
+      ease: 'Power2'
+    });
 
-    const title = this.add.text(width / 2, height * 0.22, `${INVITE.coupleNames}`, { font: '26px Arial', color: '#ffffff' })
-      .setOrigin(0.5).setDepth(201);
+    // Dimensões do modal do convite
+    const modalWidth = Math.min(width * 0.9, 400);
+    const modalHeight = Math.min(height * 0.85, 500);
+    const borderRadius = 25;
+    
+    // Sombra do modal (com bordas arredondadas)
+    const modalShadow = this.add.graphics()
+      .fillStyle(0x000000, 0.4)
+      .fillRoundedRect(width / 2 + 6 - modalWidth / 2, height / 2 + 6 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .setDepth(201);
 
-    const subtitle = this.add.text(width / 2, height * 0.29, 'Você usou a chave, o mapa e o ingresso e desbloqueou o casamento!',
-      { font: '16px Arial', color: '#ffffff', align: 'center', wordWrap: { width: width * 0.9 } })
-      .setOrigin(0.5).setDepth(201);
+    // Modal principal (com bordas arredondadas)
+    const modal = this.add.graphics()
+      .fillStyle(0xffffff, 1)
+      .lineStyle(4, 0x8e44ad)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .strokeRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .setDepth(202);
 
-    const date = this.add.text(width / 2, height * 0.39, `Data: ${INVITE.date}`, { font: '18px Arial', color: '#ffffff' })
-      .setOrigin(0.5).setDepth(201);
-    const time = this.add.text(width / 2, height * 0.45, `Horário: ${INVITE.time}`, { font: '18px Arial', color: '#ffffff' })
-      .setOrigin(0.5).setDepth(201);
-    const addr = this.add.text(width / 2, height * 0.53, `${INVITE.addressText}`,
-      { font: '16px Arial', color: '#ffffff', align: 'center', wordWrap: { width: width * 0.88 } })
-      .setOrigin(0.5).setDepth(201);
+    // Header do convite (inicialmente invisível)
+    const headerHeight = 80;
+    const header = this.add.graphics()
+      .fillStyle(0x8e44ad, 1)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, headerHeight, { tl: borderRadius, tr: borderRadius, bl: 0, br: 0 })
+      .setDepth(203)
+      .setAlpha(0);
 
-    // Botões
-  const btnMaps = this.add.text(width / 2, height * 0.66, 'Abrir o Convite',
-      { font: '20px Arial', color: '#000000', backgroundColor: '#ffffff' })
-      .setOrigin(0.5).setPadding(12, 8, 12, 8).setDepth(201).setInteractive({ useHandCursor: true });
+    // Animação de entrada do modal
+    modal.setScale(0.1);
+    modalShadow.setScale(0.1);
+    this.tweens.add({
+      targets: [modal, modalShadow],
+      scaleX: 1,
+      scaleY: 1,
+      duration: 500,
+      ease: 'Back.easeOut'
+    });
 
-    const btnReplay = this.add.text(width / 2, height * 0.75, 'Jogar de novo',
-      { font: '20px Arial', color: '#000000', backgroundColor: '#ffffff' })
-      .setOrigin(0.5).setPadding(12, 8, 12, 8).setDepth(201).setInteractive({ useHandCursor: true });
+    // Título principal (inicialmente invisível)
+    const title = this.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, `💒 ${INVITE.coupleNames} 💒`, 
+      { 
+        font: 'bold 24px Arial', 
+        color: '#ffffff',
+        align: 'center'
+      })
+      .setOrigin(0.5)
+      .setDepth(204)
+      .setAlpha(0);
 
-    const cleanup = () => {
-      overlay.destroy();
-      title.destroy();
-      subtitle.destroy();
-      date.destroy();
-      time.destroy();
-      addr.destroy();
-      btnMaps.destroy();
-      btnReplay.destroy();
-    };
+    // Subtítulo (inicialmente invisível)
+    const subtitle = this.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 30, 
+      'Você usou a chave, o mapa e o ingresso e desbloqueou o casamento!',
+      { 
+        font: '16px Arial', 
+        color: '#2c3e50', 
+        align: 'center', 
+        wordWrap: { width: modalWidth - 40 } 
+      })
+      .setOrigin(0.5)
+      .setDepth(204)
+      .setAlpha(0);
 
-    btnMaps.on('pointerup', (_pointer: any, _localX: any, _localY: any, event: any) => {
-      if (event && event.stopPropagation) event.stopPropagation();
+    // Informações do evento (inicialmente invisíveis)
+    const date = this.add.text(width / 2, height / 2 - 60, `📅 Data: ${INVITE.date}`, 
+      { 
+        font: 'bold 18px Arial', 
+        color: '#8e44ad' 
+      })
+      .setOrigin(0.5)
+      .setDepth(204)
+      .setAlpha(0);
+
+    const time = this.add.text(width / 2, height / 2 - 25, `🕐 Horário: ${INVITE.time}`, 
+      { 
+        font: 'bold 18px Arial', 
+        color: '#8e44ad' 
+      })
+      .setOrigin(0.5)
+      .setDepth(204)
+      .setAlpha(0);
+
+    const addr = this.add.text(width / 2, height / 2 + 20, `📍 ${INVITE.addressText}`,
+      { 
+        font: '16px Arial', 
+        color: '#2c3e50', 
+        align: 'center', 
+        wordWrap: { width: modalWidth - 40 } 
+      })
+      .setOrigin(0.5)
+      .setDepth(204)
+      .setAlpha(0);
+
+    // Botão "Abrir Convite" estilizado (inicialmente invisível)
+    const btnWidth = 200;
+    const btnHeight = 50;
+    const btnY = height / 2 + modalHeight / 2 - 70; // Centralizado sem o segundo botão
+
+    const btnMaps = this.add.graphics()
+      .fillStyle(0x8e44ad, 1)
+      .lineStyle(2, 0x7d3c98)
+      .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
+      .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
+      .setDepth(204)
+      .setAlpha(0);
+
+    // Área invisível para capturar cliques no botão
+    const btnClickArea = this.add.rectangle(width / 2, btnY, btnWidth, btnHeight, 0x000000, 0)
+      .setDepth(206)
+      .setInteractive({ useHandCursor: true })
+      .setAlpha(0);
+
+    const btnMapsText = this.add.text(width / 2, btnY, 'Abrir Convite', 
+      { 
+        font: 'bold 18px Arial', 
+        color: '#ffffff' 
+      })
+      .setOrigin(0.5)
+      .setDepth(205)
+      .setAlpha(0);
+
+    // Animação dos conteúdos após o modal abrir (com delay)
+    this.time.delayedCall(550, () => {
+      // Fade in do header e título principal
+      this.tweens.add({
+        targets: [header, title],
+        alpha: 1,
+        duration: 400,
+        ease: 'Power2'
+      });
+
+      // Fade in do subtítulo com delay
+      this.tweens.add({
+        targets: subtitle,
+        alpha: 1,
+        duration: 300,
+        delay: 200,
+        ease: 'Power2'
+      });
+
+      // Fade in das informações do evento
+      this.tweens.add({
+        targets: date,
+        alpha: 1,
+        duration: 300,
+        delay: 400,
+        ease: 'Power2'
+      });
+
+      this.tweens.add({
+        targets: time,
+        alpha: 1,
+        duration: 300,
+        delay: 500,
+        ease: 'Power2'
+      });
+
+      this.tweens.add({
+        targets: addr,
+        alpha: 1,
+        duration: 300,
+        delay: 600,
+        ease: 'Power2'
+      });
+
+      // Fade in do botão
+      this.tweens.add({
+        targets: [btnMaps, btnMapsText, btnClickArea],
+        alpha: 1,
+        duration: 300,
+        delay: 800,
+        ease: 'Power2'
+      });
+    });
+
+    // Efeitos interativos do botão (igual ao checkpoint)
+    btnClickArea.on('pointerover', () => {
+      this.tweens.add({
+        targets: btnClickArea,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 200,
+        ease: 'Power2'
+      });
+      // Mudar a cor do graphics para um tom mais escuro
+      btnMaps.clear()
+        .fillStyle(0x7d3c98, 1)
+        .lineStyle(2, 0x6c2d7f)
+        .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
+        .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15);
+    });
+
+    btnClickArea.on('pointerout', () => {
+      this.tweens.add({
+        targets: btnClickArea,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: 'Power2'
+      });
+      // Voltar à cor original
+      btnMaps.clear()
+        .fillStyle(0x8e44ad, 1)
+        .lineStyle(2, 0x7d3c98)
+        .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
+        .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15);
+    });
+
+    // Eventos do botão
+    btnClickArea.on('pointerdown', () => {
       if (!INVITE.inviteUrl) return;
       const win = window.open(INVITE.inviteUrl, '_blank');
       // Fallback caso o navegador bloqueie popups
       if (!win) {
         window.location.href = INVITE.inviteUrl;
       }
-    });
-
-    btnReplay.on('pointerdown', () => {
-      cleanup();
-      this.game.events.emit('ui-restart');
     });
   }
 }
