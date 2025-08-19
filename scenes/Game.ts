@@ -8,6 +8,10 @@ export class Game extends Phaser.Scene {
   private driving: boolean = false;
   private speedText!: Phaser.GameObjects.Text;
   private hitsText!: Phaser.GameObjects.Text;
+  private livesText!: Phaser.GameObjects.Text;
+  private gameOverOverlay?: Phaser.GameObjects.Rectangle;
+  private gameOverTitle?: Phaser.GameObjects.Text;
+  private gameOverTip?: Phaser.GameObjects.Text;
   private roadWidth: number = 280; // será recalculado em create()
   private roadCenterX: number = 180; // será recalculado em create()
   private pointerOffsetX: number = 0;
@@ -23,6 +27,9 @@ export class Game extends Phaser.Scene {
   private invincible: boolean = false;
   private slowDownUntil: number = 0; // timestamp this.time.now
   private hits: number = 0;
+  private maxLives: number = 5; // fácil configuração
+  private isGameOver: boolean = false;
+  private restarting: boolean = false;
   private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
 
   // Rampa de velocidade (dificuldade crescente)
@@ -38,6 +45,20 @@ export class Game extends Phaser.Scene {
 
   create() {
     const { width, height } = this.cameras.main;
+
+  // Reset de estado (importante em scene.restart())
+  this.isGameOver = false;
+  this.restarting = false;
+  this.invincible = false;
+  this.hits = 0;
+  this.slowDownUntil = 0;
+  this.speedRamp = 0;
+  // Garantir que a física esteja ativa
+  this.physics.world.resume();
+  // Remover overlays antigos (se houver)
+  if (this.gameOverOverlay) { this.gameOverOverlay.destroy(); this.gameOverOverlay = undefined; }
+  if (this.gameOverTitle) { this.gameOverTitle.destroy(); this.gameOverTitle = undefined; }
+  if (this.gameOverTip) { this.gameOverTip.destroy(); this.gameOverTip = undefined; }
 
     // Primeiro, adicionar um fundo de emergência para garantir que algo apareça
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x333333);
@@ -83,6 +104,13 @@ export class Game extends Phaser.Scene {
     this.carPlayer.setInteractive();
     
   this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.isGameOver) {
+        // Reiniciar jogo ao tocar na tela no Game Over
+        if (this.restarting) return;
+        this.restarting = true;
+        this.scene.restart();
+        return;
+      }
       // Verificar se o ponteiro começou sobre o carro
       const bounds = this.carPlayer.getBounds();
       if (bounds.contains(pointer.x, pointer.y)) {
@@ -106,15 +134,22 @@ export class Game extends Phaser.Scene {
     });
 
     // HUD de velocidade (debug)
-    this.speedText = this.add.text(10, 10, `Velocidade: ${this.gameSpeed}`, {
+  this.speedText = this.add.text(10, 10, `Velocidade: ${this.gameSpeed}`, {
       font: '16px Arial',
       color: '#ffffff'
-    });
+  }).setDepth(10);
     // HUD de hits (debug) - na linha de baixo do texto de velocidade
-    this.hitsText = this.add.text(10, this.speedText.y + this.speedText.height + 6, `Hits: ${this.hits}` , {
+  this.hitsText = this.add.text(10, this.speedText.y + this.speedText.height + 6, `Hits: ${this.hits}` , {
       font: '16px Arial',
       color: '#ffffff'
-    });
+  }).setDepth(10);
+
+    // HUD de vidas (linha seguinte)
+  this.livesText = this.add.text(10, this.hitsText.y + this.hitsText.height + 6, '', {
+      font: '16px Arial',
+      color: '#ffffff'
+  }).setDepth(10);
+    this.updateLivesHUD();
 
     // Iniciar cena UI paralela
     this.scene.launch('UI');
@@ -155,6 +190,11 @@ export class Game extends Phaser.Scene {
   }
 
   update() {
+    if (this.isGameOver) {
+      this.gameSpeed = 0;
+      this.speedText.setText(`Velocidade: 0.0 | Game Over`);
+      return;
+    }
     // Atualizar velocidade baseado no estado driving + penalidade + rampa
     const penalized = this.time.now < this.slowDownUntil;
     if (this.driving) {
@@ -272,8 +312,15 @@ export class Game extends Phaser.Scene {
     const obstacle = object2 as Phaser.Physics.Arcade.Sprite;
     if (this.invincible) return;
     this.invincible = true;
-  this.hits += 1;
-  this.hitsText.setText(`Hits: ${this.hits}`);
+    this.hits += 1;
+    this.hitsText.setText(`Hits: ${this.hits}`);
+    this.updateLivesHUD();
+
+    // Checar Game Over
+    if (this.hits >= this.maxLives) {
+      this.triggerGameOver();
+      return;
+    }
 
     // Penalidade de velocidade por 1s
     this.slowDownUntil = this.time.now + 1000;
@@ -291,6 +338,45 @@ export class Game extends Phaser.Scene {
     this.time.delayedCall(1000, () => {
       this.invincible = false;
       this.carPlayer.setAlpha(1);
+    });
+  }
+
+  private updateLivesHUD() {
+    const livesLeft = Math.max(0, this.maxLives - this.hits);
+    // Exibir corações cheios/vazios
+    const full = '❤️'.repeat(livesLeft);
+    const empty = '🤍'.repeat(this.maxLives - livesLeft);
+    this.livesText.setText(`Vidas: ${full}${empty}`);
+  }
+
+  private triggerGameOver() {
+    if (this.isGameOver) return;
+    this.isGameOver = true;
+    this.driving = false;
+    // Pausar timers e física de obstáculos
+    if (this.spawnEvent) this.spawnEvent.paused = true;
+    if (this.difficultyEvent) this.difficultyEvent.paused = true;
+    if (this.speedRampEvent) this.speedRampEvent.paused = true;
+    this.physics.world.pause();
+
+    // Trazer cena para o topo para garantir prioridade de input
+    this.scene.bringToTop();
+    // Overlay Game Over
+    const { width, height } = this.cameras.main;
+    this.gameOverOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setDepth(5).setInteractive();
+    this.gameOverTitle = this.add.text(width / 2, height / 2 - 10, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(6);
+    this.gameOverTip = this.add.text(width / 2, height / 2 + 24, 'Toque para jogar novamente', { font: '16px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(6);
+    // Tap no overlay reinicia
+    this.gameOverOverlay.once('pointerdown', () => {
+      if (this.restarting) return;
+      this.restarting = true;
+      this.scene.restart();
+    });
+    // Fallback: qualquer toque também reinicia
+    this.input.once('pointerdown', () => {
+      if (this.restarting) return;
+      this.restarting = true;
+      this.scene.restart();
     });
   }
 
