@@ -30,11 +30,21 @@ export class Game extends Phaser.Scene {
   private maxLives: number = 5; // fácil configuração
   private isGameOver: boolean = false;
   private restarting: boolean = false;
+  // Checkpoints & Inventário (Tarefa 5)
+  private inventory = { key: false, map: false, ticket: false };
+  private pausedForOverlay: boolean = false;
+  private checkpoints!: Phaser.Physics.Arcade.Group;
+  private cp1Timer!: Phaser.Time.TimerEvent;
+  private cp2Timer!: Phaser.Time.TimerEvent;
+  private cp3Timer!: Phaser.Time.TimerEvent;
+  private readonly cp1Delay: number = 1000 * 10;  // segundos
+  private readonly cp2Delay: number = 1000 * 30; // segundos
+  private readonly cp3Delay: number = 1000 * 50; // segundos
   private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
 
   // Rampa de velocidade (dificuldade crescente)
   private speedRamp: number = 0; // multiplicador incremental (0 => x1.0)
-  private readonly speedRampMax: number = 4.0; // até +200% (x3 no total)
+  private readonly speedRampMax: number = 2.0; // até +200% (x3 no total)
   private readonly speedRampStep: number = 0.15; // incremento por etapa
   private readonly speedRampInterval: number = 3000; // ms entre incrementos
   private speedRampEvent!: Phaser.Time.TimerEvent;
@@ -49,6 +59,8 @@ export class Game extends Phaser.Scene {
   // Reset de estado (importante em scene.restart())
   this.isGameOver = false;
   this.restarting = false;
+  this.pausedForOverlay = false;
+  this.inventory = { key: false, map: false, ticket: false };
   this.invincible = false;
   this.hits = 0;
   this.slowDownUntil = 0;
@@ -174,6 +186,10 @@ export class Game extends Phaser.Scene {
   this.obstacles = this.physics.add.group({ allowGravity: false });
   this.physics.add.overlap(this.carPlayer, this.obstacles, this.onHit, undefined, this);
 
+  // Grupo de checkpoints (Tarefa 5)
+  this.checkpoints = this.physics.add.group({ allowGravity: false });
+  this.physics.add.overlap(this.carPlayer, this.checkpoints, this.onCheckpoint, undefined, this);
+
   // Spawner periódico (inicia pausado para não acumular antes do jogador começar)
   this.spawnEvent = this.time.addEvent({ delay: this.spawnDelay, callback: this.spawnObstacle, callbackScope: this, loop: true, paused: true });
 
@@ -187,9 +203,19 @@ export class Game extends Phaser.Scene {
     paused: true,
     callback: () => this.increaseSpeedRamp()
   });
+
+  // Agendar checkpoints ao longo do tempo
+  this.cp1Timer = this.time.delayedCall(this.cp1Delay, () => this.spawnCheckpoint('key'));
+  this.cp2Timer = this.time.delayedCall(this.cp2Delay, () => this.spawnCheckpoint('map'));
+  this.cp3Timer = this.time.delayedCall(this.cp3Delay, () => this.spawnCheckpoint('ticket'));
   }
 
   update() {
+    // Pausado por overlay (checkpoint) ou game over
+    if (this.isGameOver || this.pausedForOverlay) {
+      this.gameSpeed = 0;
+      return;
+    }
     if (this.isGameOver) {
       this.gameSpeed = 0;
       this.speedText.setText(`Velocidade: 0.0 | Game Over`);
@@ -226,8 +252,8 @@ export class Game extends Phaser.Scene {
       this.carPlayer.rotation = Phaser.Math.Linear(this.carPlayer.rotation, 0, 0.1);
     }
 
-    // Fazer a estrada rolar para cima
-    this.road.tilePositionY -= this.gameSpeed;
+  // Fazer a estrada rolar para cima
+  this.road.tilePositionY -= this.gameSpeed;
 
     // Mover obstáculos para baixo conforme gameSpeed
     const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
@@ -238,6 +264,27 @@ export class Game extends Phaser.Scene {
       // remover ao sair da tela
       if (s.y - s.displayHeight / 2 > this.cameras.main.height + 20) {
         s.destroy();
+      }
+    }
+
+    // Mover checkpoints para baixo também e acionar overlay quando alcança o carro (sem exigir colisão)
+    const cpChildren = this.checkpoints.getChildren() as Phaser.GameObjects.GameObject[];
+    for (const obj of cpChildren) {
+      const s = obj as Phaser.Physics.Arcade.Sprite;
+      s.y += this.gameSpeed * this.road.tileScaleY;
+      if (s.y - s.displayHeight / 2 > this.cameras.main.height + 20) {
+        s.destroy();
+        continue;
+      }
+      // Auto-trigger: quando a placa chega aproximadamente na altura do carro
+      const triggered = s.getData('triggered');
+      if (!triggered) {
+        const thresholdY = this.carPlayer.y - this.carPlayer.displayHeight * 0.1;
+        if (s.y >= thresholdY) {
+          s.setData('triggered', true);
+          const item = s.getData('cpItem') as 'key' | 'map' | 'ticket';
+          this.triggerCheckpoint(item, s);
+        }
       }
     }
 
@@ -292,6 +339,19 @@ export class Game extends Phaser.Scene {
   sprite.x = Phaser.Math.Between(minX, Math.max(minX, maxX));
   }
 
+  // Spawna um checkpoint (placa) com item associado
+  private spawnCheckpoint(item: 'key' | 'map' | 'ticket') {
+  const { width, height } = this.cameras.main;
+  const offset = 50;
+  const sprite = this.checkpoints.create(width-offset, -40, 'checkpointSign') as Phaser.Physics.Arcade.Sprite;
+    sprite.setOrigin(0.5, 0.5);
+    const targetH = Math.round(height * 0.15);
+    sprite.setScale(targetH / sprite.height);
+    sprite.setData('cpItem', item);
+    sprite.setData('triggered', false);
+    sprite.setDepth(2);
+  }
+
   // Dificuldade: reduzir delay até mínimo
   private increaseDifficulty() {
     if (this.spawnDelay > this.minSpawnDelay) {
@@ -339,6 +399,46 @@ export class Game extends Phaser.Scene {
       this.invincible = false;
       this.carPlayer.setAlpha(1);
     });
+  }
+
+  // Coleta de checkpoint
+  private onCheckpoint: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+    object1,
+    object2
+  ) => {
+    if (this.isGameOver) return;
+    const cp = (object1 === this.carPlayer ? object2 : object1) as Phaser.Physics.Arcade.Sprite;
+  const item = cp.getData('cpItem') as 'key' | 'map' | 'ticket';
+  this.triggerCheckpoint(item, cp);
+  }
+
+  private triggerCheckpoint(item: 'key' | 'map' | 'ticket', cp?: Phaser.Physics.Arcade.Sprite) {
+    if (this.isGameOver) return;
+    if (cp && cp.active) cp.destroy();
+
+    // Atualizar inventário
+    if (item === 'key') this.inventory.key = true;
+    if (item === 'map') this.inventory.map = true;
+    if (item === 'ticket') this.inventory.ticket = true;
+
+    // Pausar jogabilidade e mostrar overlay na UI
+    this.pausedForOverlay = true;
+    this.driving = false;
+    if (this.spawnEvent) this.spawnEvent.paused = true;
+    if (this.difficultyEvent) this.difficultyEvent.paused = true;
+    if (this.speedRampEvent) this.speedRampEvent.paused = true;
+
+    // Emitir evento global para UI (aparece mesmo sem colisão)
+    this.game.events.emit('ui-checkpoint', { item });
+    // Aguardar fechamento do overlay para retomar
+    const resume = () => {
+      this.pausedForOverlay = false;
+      if (this.spawnEvent) this.spawnEvent.paused = !this.driving; // só retoma quando voltar a dirigir
+      if (this.difficultyEvent) this.difficultyEvent.paused = !this.driving;
+      if (this.speedRampEvent) this.speedRampEvent.paused = !this.driving;
+      this.game.events.off('ui-checkpoint-closed', resume);
+    };
+    this.game.events.on('ui-checkpoint-closed', resume);
   }
 
   private updateLivesHUD() {
