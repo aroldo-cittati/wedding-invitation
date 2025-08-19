@@ -112,6 +112,7 @@ export class Game extends Phaser.Scene {
   // Criar carro do jogador (tamanho proporcional à tela)
   this.carPlayer = this.physics.add.sprite(this.roadCenterX, height - 100, 'carPlayer');
   this.carPlayer.setOrigin(0.5, 0.5);
+  this.carPlayer.setDepth(10); // Sempre por cima dos obstáculos
 
   // Reduzir tamanho do carro mantendo proporção
   const targetCarHeight = Math.round(height * 0.14); // ~14% da altura da tela
