@@ -192,13 +192,13 @@ export class Game extends Phaser.Scene {
   if (!this.driving) return;
 
    // Limite máximo na tela
-    const maxOnScreen = 5; // ajuste conforme preferir
+    const maxOnScreen = 4; // ajuste conforme preferir
     if (this.obstacles.getLength() >= maxOnScreen) return;
 
     const { width, height } = this.cameras.main;
-    const roadLeft = this.roadCenterX - this.roadWidth / 2;
-    const roadRight = this.roadCenterX + this.roadWidth / 2;
-    const x = Phaser.Math.Between(Math.floor(roadLeft), Math.floor(roadRight));
+    const roadLeft = this.roadCenterX - this.roadWidth / 3;
+    const roadRight = this.roadCenterX + this.roadWidth / 3;
+  // Ainda não sabemos a largura do sprite escalado; vamos definir o X após escalar
 
     // Escolher tipo
     const roll = Math.random();
@@ -207,12 +207,12 @@ export class Game extends Phaser.Scene {
     else if (roll < 0.7) key = 'carEnemy1'; // 30%
     else key = 'carEnemy2'; // 30%
 
-  const sprite = this.obstacles.create(x, -50, key) as Phaser.Physics.Arcade.Sprite;
+  const sprite = this.obstacles.create(this.roadCenterX, -50, key) as Phaser.Physics.Arcade.Sprite;
     sprite.setOrigin(0.5, 0.5);
     sprite.setImmovable(true);
     sprite.setDepth(1);
     // Escala aproximada para combinar com a pista e o carro
-    if (key === 'pothole') {
+  if (key === 'pothole') {
       // buraco menor
       const targetH = Math.round(height * 0.06);
       sprite.setScale(targetH / sprite.height);
@@ -221,6 +221,12 @@ export class Game extends Phaser.Scene {
       const targetH = Math.round(height * 0.12);
       sprite.setScale(targetH / sprite.height);
     }
+
+  // Agora que o sprite está escalado, calcule limites seguros dentro da pista
+  const halfW = sprite.displayWidth / 2;
+  const minX = Math.floor(roadLeft + halfW);
+  const maxX = Math.floor(roadRight - halfW);
+  sprite.x = Phaser.Math.Between(minX, Math.max(minX, maxX));
   }
 
   // Dificuldade: reduzir delay até mínimo
