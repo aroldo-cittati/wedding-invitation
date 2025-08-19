@@ -37,10 +37,10 @@ export class Game extends Phaser.Scene {
   private cp1Timer!: Phaser.Time.TimerEvent;
   private cp2Timer!: Phaser.Time.TimerEvent;
   private cp3Timer!: Phaser.Time.TimerEvent;
-  private readonly cp1Delay: number = 1000 * 1;  // segundos
-  private readonly cp2Delay: number = 1000 * 2; // segundos
-  private readonly cp3Delay: number = 1000 * 3; // segundos
-  private readonly goalSpawnDelay: number = 1000 * 1; // segundos após coletar o último item
+  private readonly cp1Delay: number = 1000 * 20;  // segundos
+  private readonly cp2Delay: number = 1000 * 40; // segundos
+  private readonly cp3Delay: number = 1000 * 60; // segundos
+  private readonly goalSpawnDelay: number = 1000 * 5; // segundos após coletar o último item
   private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
   // Goal (Tarefa 7)
   private goalSprite?: Phaser.Physics.Arcade.Sprite;
