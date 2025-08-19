@@ -170,8 +170,14 @@ export class UI extends Phaser.Scene {
       btnReplay.destroy();
     };
 
-    btnMaps.on('pointerdown', () => {
-      if (INVITE.inviteUrl) window.open(INVITE.inviteUrl, '_blank');
+    btnMaps.on('pointerup', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event?: Phaser.Types.Input.EventData) => {
+      if (event && event.stopPropagation) event.stopPropagation();
+      if (!INVITE.inviteUrl) return;
+      const win = window.open(INVITE.inviteUrl, '_blank');
+      // Fallback caso o navegador bloqueie popups
+      if (!win) {
+        window.location.href = INVITE.inviteUrl;
+      }
     });
 
     btnReplay.on('pointerdown', () => {
