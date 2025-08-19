@@ -36,10 +36,14 @@ export class Game extends Phaser.Scene {
   private cp1Timer!: Phaser.Time.TimerEvent;
   private cp2Timer!: Phaser.Time.TimerEvent;
   private cp3Timer!: Phaser.Time.TimerEvent;
-  private readonly cp1Delay: number = 1000 * 10;  // segundos
-  private readonly cp2Delay: number = 1000 * 30; // segundos
-  private readonly cp3Delay: number = 1000 * 50; // segundos
+  private readonly cp1Delay: number = 1000 * 1;  // segundos
+  private readonly cp2Delay: number = 1000 * 2; // segundos
+  private readonly cp3Delay: number = 1000 * 3; // segundos
+  private readonly goalSpawnDelay: number = 1000 * 1; // segundos após coletar o último item
   private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
+  // Goal (Tarefa 7)
+  private goalSprite?: Phaser.Physics.Arcade.Sprite;
+  private goalSpawned: boolean = false;
 
   // Rampa de velocidade (dificuldade crescente)
   private speedRamp: number = 0; // multiplicador incremental (0 => x1.0)
@@ -292,6 +296,22 @@ export class Game extends Phaser.Scene {
     if (this.showDebugHUD && this.speedText) {
       this.speedText.setText(`Velocidade: ${this.gameSpeed.toFixed(1)} | Dirigindo: ${this.driving ? 'SIM' : 'NÃO'} | Rampa: x${(1 + this.speedRamp).toFixed(2)}`);
     }
+
+    // Mover goal e verificar chegada
+    if (this.goalSprite && this.goalSprite.active) {
+      this.goalSprite.y += this.gameSpeed * this.road.tileScaleY;
+      // Se alcançou a altura do carro, dispara o final
+      const thresholdY = this.carPlayer.y - this.carPlayer.displayHeight * 0.15;
+      if (this.goalSprite.y >= thresholdY) {
+        this.goalSprite.y = thresholdY;
+        this.triggerGoal();
+      }
+      // Remover se sair da tela (fallback)
+      if (this.goalSprite.y - this.goalSprite.displayHeight / 2 > this.cameras.main.height + 40) {
+        this.goalSprite.destroy();
+        this.goalSprite = undefined;
+      }
+    }
   }
 
   private increaseSpeedRamp() {
@@ -424,6 +444,11 @@ export class Game extends Phaser.Scene {
     if (item === 'map') this.inventory.map = true;
     if (item === 'ticket') this.inventory.ticket = true;
 
+    // Se todos os itens foram coletados, agendar goal
+    if (this.inventory.key && this.inventory.map && this.inventory.ticket && !this.goalSpawned) {
+      this.time.delayedCall(this.goalSpawnDelay, () => this.spawnGoal());
+    }
+
     // Pausar jogabilidade e mostrar overlay na UI
     this.pausedForOverlay = true;
     this.driving = false;
@@ -445,6 +470,41 @@ export class Game extends Phaser.Scene {
   }
 
   // vidas HUD agora é responsabilidade da cena UI (via eventos ui-lives)
+
+  // Spawna a casa (goal final) no topo e no centro da pista
+  private spawnGoal() {
+    if (this.goalSpawned) return;
+    const { height } = this.cameras.main;
+    this.goalSpawned = true;
+    const x = this.roadCenterX;
+    const y = -60;
+    const sprite = this.physics.add.sprite(x, y, 'houseGoal');
+    sprite.setOrigin(0.5, 0.5);
+    const targetH = Math.round(height * 0.22);
+    sprite.setScale(targetH / sprite.height);
+    sprite.setDepth(3);
+    sprite.setImmovable(true);
+    this.goalSprite = sprite;
+  }
+
+  private triggerGoal() {
+    if (!this.goalSprite || this.isGameOver) return;
+    // Pausar jogabilidade e mostrar convite
+    this.pausedForOverlay = true;
+    this.driving = false;
+    if (this.spawnEvent) this.spawnEvent.paused = true;
+    if (this.difficultyEvent) this.difficultyEvent.paused = true;
+    if (this.speedRampEvent) this.speedRampEvent.paused = true;
+
+    // Emite evento para UI apresentar o convite
+    this.game.events.emit('ui-invite');
+
+    const onRestart = () => {
+      this.game.events.off('ui-restart', onRestart);
+      this.scene.restart();
+    };
+    this.game.events.on('ui-restart', onRestart);
+  }
 
   private triggerGameOver() {
     if (this.isGameOver) return;

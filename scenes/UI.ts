@@ -1,4 +1,6 @@
 // UI.ts - Cena de interface do usuário
+import { INVITE } from '../config/invite';
+
 export class UI extends Phaser.Scene {
   private icons!: { key: Phaser.GameObjects.Image; map: Phaser.GameObjects.Image; ticket: Phaser.GameObjects.Image };
   private inventory = { key: false, map: false, ticket: false };
@@ -58,6 +60,11 @@ export class UI extends Phaser.Scene {
       this.maxLives = payload.maxLives;
       this.hits = payload.hits;
       this.updateLivesHUD();
+    });
+
+    // Evento para mostrar o convite final
+    this.game.events.on('ui-invite', () => {
+      this.showInviteOverlay();
     });
   }
 
@@ -122,5 +129,54 @@ export class UI extends Phaser.Scene {
     const full = '❤️'.repeat(livesLeft);
     const empty = '🤍'.repeat(this.maxLives - livesLeft);
     this.livesText.setText(`Vidas: ${full}${empty}`);
+  }
+
+  private showInviteOverlay() {
+    const { width, height } = this.cameras.main;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setDepth(200).setInteractive();
+
+    const title = this.add.text(width / 2, height * 0.22, `${INVITE.coupleNames}`, { font: '26px Arial', color: '#ffffff' })
+      .setOrigin(0.5).setDepth(201);
+
+    const subtitle = this.add.text(width / 2, height * 0.29, 'Você usou a chave, o mapa e o ingresso e desbloqueou o casamento!',
+      { font: '16px Arial', color: '#ffffff', align: 'center', wordWrap: { width: width * 0.9 } })
+      .setOrigin(0.5).setDepth(201);
+
+    const date = this.add.text(width / 2, height * 0.39, `Data: ${INVITE.date}`, { font: '18px Arial', color: '#ffffff' })
+      .setOrigin(0.5).setDepth(201);
+    const time = this.add.text(width / 2, height * 0.45, `Horário: ${INVITE.time}`, { font: '18px Arial', color: '#ffffff' })
+      .setOrigin(0.5).setDepth(201);
+    const addr = this.add.text(width / 2, height * 0.53, `${INVITE.addressText}`,
+      { font: '16px Arial', color: '#ffffff', align: 'center', wordWrap: { width: width * 0.88 } })
+      .setOrigin(0.5).setDepth(201);
+
+    // Botões
+  const btnMaps = this.add.text(width / 2, height * 0.66, 'Abrir o Convite',
+      { font: '20px Arial', color: '#000000', backgroundColor: '#ffffff' })
+      .setOrigin(0.5).setPadding(12, 8, 12, 8).setDepth(201).setInteractive({ useHandCursor: true });
+
+    const btnReplay = this.add.text(width / 2, height * 0.75, 'Jogar de novo',
+      { font: '20px Arial', color: '#000000', backgroundColor: '#ffffff' })
+      .setOrigin(0.5).setPadding(12, 8, 12, 8).setDepth(201).setInteractive({ useHandCursor: true });
+
+    const cleanup = () => {
+      overlay.destroy();
+      title.destroy();
+      subtitle.destroy();
+      date.destroy();
+      time.destroy();
+      addr.destroy();
+      btnMaps.destroy();
+      btnReplay.destroy();
+    };
+
+    btnMaps.on('pointerdown', () => {
+      if (INVITE.inviteUrl) window.open(INVITE.inviteUrl, '_blank');
+    });
+
+    btnReplay.on('pointerdown', () => {
+      cleanup();
+      this.game.events.emit('ui-restart');
+    });
   }
 }

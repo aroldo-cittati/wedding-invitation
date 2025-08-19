@@ -208,15 +208,14 @@ const INVITE = {
 - Painel do convite com dados do INVITE
 
 **Prompt para IA:**
-> Depois de coletar key, map e ticket, programe o GoalManager (em TypeScript) para spawnar houseGoal.  
+> Depois de coletar key, map e ticket, programe o GoalManager (em TypeScript) para spawnar houseGoal, no centro da tela, faça a estrada acabar e a casa deve ficar no final da estrada.
 > Ao colidir, pausa a lógica, desabilita input e exibe uma tela (cena UI) com:  
 > - Título: ${INVITE.coupleNames}  
 > - Texto: “Você usou a chave, o mapa e o ingresso e desbloqueou o casamento!”  
 > - Data: ${INVITE.date}  
 > - Horário: ${INVITE.time}  
 > - Endereço: ${INVITE.addressText}  
-> - Botão “Abrir no Mapa” → window.open(INVITE.mapsUrl, "_blank")  
-> - Botão “Compartilhar” → navigator.share(...) se suportado; fallback: copiar texto para clipboard.  
+> - Botão “Abrir o Convite” → window.open(INVITE.inviteUrl, "_blank")   
 > - Adicione um botão “Jogar de novo”.
 
 ---
