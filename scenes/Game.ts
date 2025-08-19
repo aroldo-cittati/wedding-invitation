@@ -7,6 +7,7 @@ export class Game extends Phaser.Scene {
   private driveBoost: number = 6;
   private driving: boolean = false;
   private speedText!: Phaser.GameObjects.Text;
+  private hitsText!: Phaser.GameObjects.Text;
   private roadWidth: number = 280; // será recalculado em create()
   private roadCenterX: number = 180; // será recalculado em create()
   private pointerOffsetX: number = 0;
@@ -22,6 +23,7 @@ export class Game extends Phaser.Scene {
   private invincible: boolean = false;
   private slowDownUntil: number = 0; // timestamp this.time.now
   private hits: number = 0;
+  private sideWalls!: Phaser.Physics.Arcade.StaticGroup;
 
   // Rampa de velocidade (dificuldade crescente)
   private speedRamp: number = 0; // multiplicador incremental (0 => x1.0)
@@ -108,9 +110,30 @@ export class Game extends Phaser.Scene {
       font: '16px Arial',
       color: '#ffffff'
     });
+    // HUD de hits (debug) - na linha de baixo do texto de velocidade
+    this.hitsText = this.add.text(10, this.speedText.y + this.speedText.height + 6, `Hits: ${this.hits}` , {
+      font: '16px Arial',
+      color: '#ffffff'
+    });
 
     // Iniciar cena UI paralela
     this.scene.launch('UI');
+
+    // Bordas da pista (paredes invisíveis)
+    this.sideWalls = this.physics.add.staticGroup();
+    const wallThickness = 10;
+    const wallHeight = height + 200;
+    const roadLeftEdge = this.roadCenterX - this.roadWidth / 2.5;
+    const roadRightEdge = this.roadCenterX + this.roadWidth / 2.5;
+    const wallL = this.add.rectangle(roadLeftEdge + wallThickness / 2, height / 2, wallThickness, wallHeight, 0x000000, 0);
+    const wallR = this.add.rectangle(roadRightEdge - wallThickness / 2, height / 2, wallThickness, wallHeight, 0x000000, 0);
+    this.physics.add.existing(wallL, true);
+    this.physics.add.existing(wallR, true);
+    wallL.setData('side', 'left');
+    wallR.setData('side', 'right');
+    this.sideWalls.add(wallL);
+    this.sideWalls.add(wallR);
+    this.physics.add.collider(this.carPlayer, this.sideWalls, this.onSideHit, undefined, this);
 
   // Grupo de obstáculos e colisão (Tarefa 3)
   this.obstacles = this.physics.add.group({ allowGravity: false });
@@ -146,10 +169,10 @@ export class Game extends Phaser.Scene {
         // Aplicar LERP para movimento suave
         this.carPlayer.x += (targetX - this.carPlayer.x) * lerpFactor;
         
-        // Limitar nas bordas da pista
-        const roadLeft = this.roadCenterX - this.roadWidth / 2 + this.carPlayer.displayWidth / 2;
-        const roadRight = this.roadCenterX + this.roadWidth / 2 - this.carPlayer.displayWidth / 2;
-        this.carPlayer.x = Phaser.Math.Clamp(this.carPlayer.x, roadLeft, roadRight);
+  // Limitar nas bordas da pista (com pequena folga para permitir colisão com a parede invisível)
+  const roadLeftClamp = this.roadCenterX - this.roadWidth / 2 + this.carPlayer.displayWidth / 2 - 2;
+  const roadRightClamp = this.roadCenterX + this.roadWidth / 2 - this.carPlayer.displayWidth / 2 + 2;
+  this.carPlayer.x = Phaser.Math.Clamp(this.carPlayer.x, roadLeftClamp, roadRightClamp);
         
         // Efeito de rotação baseado na direção
         const direction = targetX - this.carPlayer.x;
@@ -249,7 +272,8 @@ export class Game extends Phaser.Scene {
     const obstacle = object2 as Phaser.Physics.Arcade.Sprite;
     if (this.invincible) return;
     this.invincible = true;
-    this.hits += 1;
+  this.hits += 1;
+  this.hitsText.setText(`Hits: ${this.hits}`);
 
     // Penalidade de velocidade por 1s
     this.slowDownUntil = this.time.now + 1000;
@@ -268,5 +292,22 @@ export class Game extends Phaser.Scene {
       this.invincible = false;
       this.carPlayer.setAlpha(1);
     });
+  }
+
+  // Colisão com as laterais: empurrão e leve penalidade
+  private onSideHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+    object1,
+    object2
+  ) => {
+    // Descobrir qual objeto é a parede
+    const wallGO = (object1 === this.carPlayer ? object2 : object1) as any;
+    const side = (wallGO.getData ? wallGO.getData('side') : undefined) as 'left' | 'right' | undefined;
+    const push = side === 'left' ? 12 : -12;
+    // penalidade curta
+    this.slowDownUntil = Math.max(this.slowDownUntil, this.time.now + 300);
+    // leve empurrão de volta para o centro
+    this.tweens.add({ targets: this.carPlayer, x: this.carPlayer.x + push, duration: 90, ease: 'Sine.easeOut' });
+    // tremor sutil para feedback
+    this.cameras.main.shake(60, 0.001);
   }
 }
