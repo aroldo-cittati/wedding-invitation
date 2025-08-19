@@ -89,22 +89,27 @@ export class UI extends Phaser.Scene {
     // Dimensões do modal
     const modalWidth = Math.min(width * 0.85, 350);
     const modalHeight = Math.min(height * 0.65, 420);
+    const borderRadius = 20;
     
-    // Sombra do modal
-    const modalShadow = this.add.rectangle(width / 2 + 4, height / 2 + 4, modalWidth, modalHeight, 0x000000, 0.3)
-      .setOrigin(0.5)
+    // Sombra do modal (com bordas arredondadas)
+    const modalShadow = this.add.graphics()
+      .fillStyle(0x000000, 0.3)
+      .fillRoundedRect(width / 2 + 4 - modalWidth / 2, height / 2 + 4 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
       .setDepth(101);
 
-    // Modal principal
-    const modal = this.add.rectangle(width / 2, height / 2, modalWidth, modalHeight, 0xffffff, 1)
-      .setOrigin(0.5)
-      .setDepth(102)
-      .setStrokeStyle(3, 0x2c3e50);
+    // Modal principal (com bordas arredondadas)
+    const modal = this.add.graphics()
+      .fillStyle(0xffffff, 1)
+      .lineStyle(3, 0x2c3e50)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .strokeRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .setDepth(102);
 
-    // Header colorido (inicialmente invisível)
+    // Header colorido (inicialmente invisível, com bordas arredondadas apenas no topo)
     const headerHeight = 60;
-    const header = this.add.rectangle(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, modalWidth, headerHeight, 0x3498db, 1)
-      .setOrigin(0.5)
+    const header = this.add.graphics()
+      .fillStyle(0x3498db, 1)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, headerHeight, { tl: borderRadius, tr: borderRadius, bl: 0, br: 0 })
       .setDepth(103)
       .setAlpha(0);
 
