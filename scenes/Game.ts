@@ -446,16 +446,18 @@ export class Game extends Phaser.Scene {
   const sprite = this.obstacles.create(this.roadCenterX, -50, key) as Phaser.Physics.Arcade.Sprite;
     sprite.setOrigin(0.5, 0.5);
     sprite.setImmovable(true);
-    sprite.setDepth(1);
+    
     // Escala aproximada para combinar com a pista e o carro
   if (key === 'pothole') {
       // buraco menor
       const targetH = Math.round(height * 0.06);
       sprite.setScale(targetH / sprite.height);
+      sprite.setDepth(1); // Buracos por baixo
     } else {
       // inimigos um pouco menores que o player
       const targetH = Math.round(height * 0.12);
       sprite.setScale(targetH / sprite.height);
+      sprite.setDepth(2); // Carros por cima dos buracos
       
       // Adicionar propriedades de movimento para carros inimigos parecerem dirigindo
       sprite.setData('isDriving', true);
