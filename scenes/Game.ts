@@ -29,6 +29,11 @@ export class Game extends Phaser.Scene {
   private maxLives: number = 5; // fácil configuração
   private isGameOver: boolean = false;
   private restarting: boolean = false;
+  
+  // Configuração de distância de segurança entre carros inimigos
+  // Aumentar estes valores para carros mais espaçados, diminuir para mais desafiador
+  private readonly minCarSafeDistance: number = 150; // pixels mínimos entre carros
+  private readonly safeDistanceBuffer: number = 30; // buffer adicional baseado na velocidade atual
   // Checkpoints & Inventário (Tarefa 5)
   private inventory = { key: false, map: false, ticket: false };
   private pausedForOverlay: boolean = false;
@@ -390,6 +395,44 @@ export class Game extends Phaser.Scene {
     this.speedRamp = Math.min(this.speedRampMax, this.speedRamp + this.speedRampStep);
   }
 
+  // Verifica se é seguro spawnar um carro inimigo (distância mínima entre carros)
+  private canSpawnCarSafely(): boolean {
+    const spawnY = -50; // posição Y onde novos carros são criados
+    
+    // Calcular distância mínima baseada na velocidade atual e configuração
+    const speedFactor = this.gameSpeed / this.baseSpeed; // fator de velocidade atual
+    const dynamicSafeDistance = this.minCarSafeDistance + (this.safeDistanceBuffer * speedFactor);
+    
+    // Buscar todos os carros inimigos ativos na tela
+    const existingCars = this.obstacles.getChildren().filter((obstacle) => {
+      const sprite = obstacle as Phaser.Physics.Arcade.Sprite;
+      return sprite.active && sprite.getData('isDriving') === true;
+    }) as Phaser.Physics.Arcade.Sprite[];
+    
+    // Se não há carros na tela, é seguro spawnar
+    if (existingCars.length === 0) {
+      return true;
+    }
+    
+    // Verificar distância do ponto de spawn para cada carro existente
+    for (const car of existingCars) {
+      const verticalDistance = Math.abs(car.y - spawnY);
+      
+      // Se algum carro está muito próximo verticalmente do ponto de spawn, não é seguro
+      if (verticalDistance < dynamicSafeDistance) {
+        return false;
+      }
+      
+      // Verificação adicional: se o carro está se movendo na mesma direção
+      // e está muito próximo da zona de spawn, aguardar mais tempo
+      if (car.y > spawnY && car.y < spawnY + dynamicSafeDistance * 1.5) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   // Verificar se é hora de spawnar checkpoints baseado na distância percorrida
   private checkDistanceCheckpoints() {
     // Checkpoint 1: Chave
@@ -442,6 +485,13 @@ export class Game extends Phaser.Scene {
     if (roll < 0.4) key = 'pothole'; // 40%
     else if (roll < 0.7) key = 'carEnemy1'; // 30%
     else key = 'carEnemy2'; // 30%
+
+    // Verificar distância de segurança para carros inimigos
+    if (key === 'carEnemy1' || key === 'carEnemy2') {
+      if (!this.canSpawnCarSafely()) {
+        return; // Não spawnar se não há distância segura
+      }
+    }
 
   const sprite = this.obstacles.create(this.roadCenterX, -50, key) as Phaser.Physics.Arcade.Sprite;
     sprite.setOrigin(0.5, 0.5);
