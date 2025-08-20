@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { Boot } from './scenes/Boot';
 import { Game } from './scenes/Game';
+import { Menu } from './scenes/Menu';
 import { Preload } from './scenes/Preload';
 import { UI } from './scenes/UI';
 
@@ -22,7 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 360,
     height: 640
   },
-  scene: [Boot, Preload, Game, UI],
+  scene: [Boot, Preload, Menu, Game, UI],
   parent: 'app'
 };
 

@@ -10,6 +10,8 @@ export class UI extends Phaser.Scene {
   private hudContainer!: Phaser.GameObjects.Container;
   private hudBackground!: Phaser.GameObjects.Graphics;
   private iconOriginalScales!: { key: number; map: number; ticket: number };
+  private soundButton!: Phaser.GameObjects.Text;
+  private musicEnabled: boolean = true;
 
   constructor() {
     super('UI');
@@ -143,6 +145,9 @@ export class UI extends Phaser.Scene {
     
     this.hudContainer.add(this.livesText);
     this.updateLivesHUD();
+    
+    // Adicionar botão de som no canto superior direito
+    this.createSoundButton();
   }
 
   private showCheckpointOverlay(item: 'key' | 'map' | 'ticket') {
@@ -739,5 +744,53 @@ export class UI extends Phaser.Scene {
         window.location.href = INVITE.inviteUrl;
       }
     });
+  }
+
+  private createSoundButton() {
+    const { width } = this.cameras.main;
+    const margin = 20;
+    
+    // Criar botão de som no canto superior direito
+    this.soundButton = this.add.text(width - margin, margin, '♪', {
+      font: 'bold 24px Arial',
+      color: '#ffffff',
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
+    })
+    .setOrigin(1, 0)
+    .setDepth(100)
+    .setScrollFactor(0)
+    .setInteractive({ useHandCursor: true });
+
+    // Configurar clique no botão
+    this.soundButton.on('pointerdown', () => {
+      this.toggleMusic();
+    });
+
+    // Efeito hover
+    this.soundButton.on('pointerover', () => {
+      this.soundButton.setTint(0xffff00);
+    });
+
+    this.soundButton.on('pointerout', () => {
+      this.soundButton.clearTint();
+    });
+
+    // Atualizar aparência inicial
+    this.updateSoundButton();
+  }
+
+  private toggleMusic() {
+    this.musicEnabled = !this.musicEnabled;
+    this.updateSoundButton();
+    
+    // Comunicar com a cena Game para controlar a música
+    this.game.events.emit('ui-toggle-music', this.musicEnabled);
+  }
+
+  private updateSoundButton() {
+    if (this.soundButton) {
+      this.soundButton.setText(this.musicEnabled ? '♪' : '♪̸');
+      this.soundButton.setAlpha(this.musicEnabled ? 1.0 : 0.5);
+    }
   }
 }

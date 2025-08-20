@@ -60,6 +60,10 @@ export class Game extends Phaser.Scene {
   private speedRampEvent!: Phaser.Time.TimerEvent;
   // HUD/Debug
   private showDebugHUD: boolean = false; // flag para ativar/desativar info de debug (velocidade, dirigindo, rampa, hits)
+  
+  // Audio
+  private backgroundMusic?: Phaser.Sound.BaseSound;
+  private musicEnabled: boolean = true;
 
   constructor() {
     super('Game');
@@ -191,6 +195,17 @@ export class Game extends Phaser.Scene {
   this.game.events.emit('ui-reset-inventory');
   this.game.events.emit('ui-lives', { maxLives: this.maxLives, hits: this.hits });
 
+  // Listener para controle de música da UI
+  this.game.events.off('ui-toggle-music'); // Remover listener anterior se existir
+  this.game.events.on('ui-toggle-music', (enabled: boolean) => {
+    this.musicEnabled = enabled;
+    if (enabled) {
+      this.playBackgroundMusic();
+    } else {
+      this.pauseBackgroundMusic();
+    }
+  });
+
     // Bordas da pista (paredes invisíveis)
     this.sideWalls = this.physics.add.staticGroup();
     const wallThickness = 10;
@@ -230,6 +245,9 @@ export class Game extends Phaser.Scene {
   });
 
   // Os checkpoints agora são spawned baseado na distância percorrida (no método update)
+  
+  // Inicializar música de fundo
+  this.initializeAudio();
   }
 
   update() {
@@ -618,6 +636,9 @@ export class Game extends Phaser.Scene {
     this.isGameOver = true;
     this.driving = false;
     
+    // Parar música de fundo
+    this.stopBackgroundMusic();
+    
     // Pausar timers e física de obstáculos
     if (this.spawnEvent) this.spawnEvent.paused = true;
     if (this.difficultyEvent) this.difficultyEvent.paused = true;
@@ -630,21 +651,41 @@ export class Game extends Phaser.Scene {
     // Overlay Game Over com depth alto para ficar acima da UI temporariamente
     const { width, height } = this.cameras.main;
     this.gameOverOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75).setDepth(200).setInteractive();
-    this.gameOverTitle = this.add.text(width / 2, height / 2 - 10, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
-    this.gameOverTip = this.add.text(width / 2, height / 2 + 24, 'Toque para jogar novamente', { font: '16px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
+    this.gameOverTitle = this.add.text(width / 2, height / 2 - 30, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
     
-    // Método simples para reiniciar
-    this.gameOverOverlay.once('pointerdown', () => {
+    // Botão Jogar Novamente
+    const playAgainButton = this.add.text(width / 2, height / 2 + 20, '🔄 JOGAR NOVAMENTE', {
+      font: 'bold 16px Arial',
+      color: '#ffffff',
+      backgroundColor: '#4CAF50',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setDepth(201).setInteractive({ useHandCursor: true });
+
+    // Botão Menu
+    const menuButton = this.add.text(width / 2, height / 2 + 60, '🏠 MENU', {
+      font: 'bold 16px Arial',
+      color: '#ffffff',
+      backgroundColor: '#2196F3',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setDepth(201).setInteractive({ useHandCursor: true });
+
+    // Efeitos dos botões
+    playAgainButton.on('pointerover', () => playAgainButton.setTint(0xffff99));
+    playAgainButton.on('pointerout', () => playAgainButton.clearTint());
+    menuButton.on('pointerover', () => menuButton.setTint(0xffff99));
+    menuButton.on('pointerout', () => menuButton.clearTint());
+
+    // Ações dos botões
+    playAgainButton.on('pointerdown', () => {
       if (this.restarting) return;
       this.restarting = true;
       this.scene.restart();
     });
-    
-    // Fallback: qualquer toque também reinicia
-    this.input.once('pointerdown', () => {
+
+    menuButton.on('pointerdown', () => {
       if (this.restarting) return;
       this.restarting = true;
-      this.scene.restart();
+      this.scene.start('Menu');
     });
   }
 
@@ -663,5 +704,49 @@ export class Game extends Phaser.Scene {
     this.tweens.add({ targets: this.carPlayer, x: this.carPlayer.x + push, duration: 90, ease: 'Sine.easeOut' });
     // tremor sutil para feedback
     this.cameras.main.shake(60, 0.001);
+  }
+
+  // Métodos de áudio
+  private initializeAudio() {
+    // Tentar obter a música do Registry (iniciada no Menu)
+    const existingMusic = this.registry.get('backgroundMusic') as Phaser.Sound.BaseSound;
+    
+    if (existingMusic && existingMusic.isPlaying) {
+      // Usar a música já iniciada no Menu
+      this.backgroundMusic = existingMusic;
+    } else if (!this.backgroundMusic) {
+      // Fallback: criar nova instância se necessário
+      this.backgroundMusic = this.sound.add('backgroundMusic', {
+        loop: true,
+        volume: 0.5
+      });
+      
+      // Tentar iniciar música imediatamente se habilitada
+      if (this.musicEnabled) {
+        this.tryPlayBackgroundMusic();
+      }
+    }
+  }
+
+  private tryPlayBackgroundMusic() {
+    if (this.backgroundMusic && this.musicEnabled && !this.backgroundMusic.isPlaying) {
+      this.backgroundMusic.play();
+    }
+  }
+
+  private playBackgroundMusic() {
+    this.tryPlayBackgroundMusic();
+  }
+
+  private pauseBackgroundMusic() {
+    if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+      this.backgroundMusic.pause();
+    }
+  }
+
+  private stopBackgroundMusic() {
+    if (this.backgroundMusic) {
+      this.backgroundMusic.stop();
+    }
   }
 }

@@ -38,10 +38,13 @@ export class Preload extends Phaser.Scene {
     this.load.image('iconKey', 'assets/iconKey.png');
     this.load.image('iconMap', 'assets/iconMap.png');
     this.load.image('iconTicket', 'assets/iconTicket.png');
+    
+    // Carregar áudio
+    this.load.audio('backgroundMusic', 'assets/sound.m4a');
   }
 
   create() {
-    this.scene.start('Game');
+    this.scene.start('Menu');
   }
 
   // ...
