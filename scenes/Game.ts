@@ -752,6 +752,13 @@ export class Game extends Phaser.Scene {
     playAgainButton.on('pointerdown', () => {
       if (this.restarting) return;
       this.restarting = true;
+      
+      // Garantir que a música continue tocando no restart
+      if (this.backgroundMusic && this.musicEnabled) {
+        // Armazenar referência da música no Registry para o restart
+        this.registry.set('backgroundMusic', this.backgroundMusic);
+      }
+      
       this.scene.restart();
     });
 
@@ -781,13 +788,18 @@ export class Game extends Phaser.Scene {
 
   // Métodos de áudio
   private initializeAudio() {
-    // Tentar obter a música do Registry (iniciada no Menu)
+    // Tentar obter a música do Registry (iniciada no Menu ou restart)
     const existingMusic = this.registry.get('backgroundMusic') as Phaser.Sound.BaseSound;
     
-    if (existingMusic && existingMusic.isPlaying) {
-      // Usar a música já iniciada no Menu
+    if (existingMusic) {
+      // Usar a música já iniciada
       this.backgroundMusic = existingMusic;
-    } else if (!this.backgroundMusic) {
+      
+      // Garantir que está tocando se habilitada
+      if (this.musicEnabled && !this.backgroundMusic.isPlaying) {
+        this.backgroundMusic.play();
+      }
+    } else {
       // Fallback: criar nova instância se necessário
       this.backgroundMusic = this.sound.add('backgroundMusic', {
         loop: true,
