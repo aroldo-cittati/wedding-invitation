@@ -2,6 +2,8 @@
 export class Menu extends Phaser.Scene {
   private backgroundMusic?: Phaser.Sound.BaseSound;
   private playButton?: Phaser.GameObjects.Text;
+  private playButtonBg?: Phaser.GameObjects.Graphics;
+  private buttonContainer?: Phaser.GameObjects.Container;
   private title?: Phaser.GameObjects.Text;
   private subtitle?: Phaser.GameObjects.Text;
   private road?: Phaser.GameObjects.TileSprite;
@@ -48,34 +50,72 @@ export class Menu extends Phaser.Scene {
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
     }).setOrigin(0.5);
 
-    // Botão Jogar
-    this.playButton = this.add.text(width / 2, height / 2 + 40, '▶ JOGAR', {
+    // Criar container para o botão (fundo + texto juntos)
+    this.buttonContainer = this.add.container(width / 2, height / 2 + 40);
+
+    // Criar fundo do botão
+    this.playButtonBg = this.add.graphics();
+    this.playButtonBg.fillStyle(0x4CAF50, 1);
+    const buttonWidth = 160;
+    const buttonHeight = 50;
+    this.playButtonBg.fillRoundedRect(
+      -buttonWidth / 2,
+      -buttonHeight / 2,
+      buttonWidth,
+      buttonHeight,
+      12
+    );
+
+    // Botão Jogar (sem backgroundColor)
+    this.playButton = this.add.text(0, 0, '▶ JOGAR', {
       font: 'bold 24px Arial',
       color: '#ffffff',
-      backgroundColor: '#4CAF50',
       padding: { x: 20, y: 10 }
     })
     .setOrigin(0.5)
     .setInteractive({ useHandCursor: true });
 
+    // Adicionar elementos ao container
+    this.buttonContainer.add([this.playButtonBg, this.playButton]);
+
     // Efeitos do botão
     this.playButton.on('pointerover', () => {
-      this.playButton?.setScale(1.1);
+      this.buttonContainer?.setScale(1.1);
       this.playButton?.setTint(0xffff99);
+      // Redesenhar o fundo com cor mais clara
+      this.playButtonBg?.clear();
+      this.playButtonBg?.fillStyle(0x66BB6A, 1);
+      this.playButtonBg?.fillRoundedRect(
+        -buttonWidth / 2,
+        -buttonHeight / 2,
+        buttonWidth,
+        buttonHeight,
+        12
+      );
     });
 
     this.playButton.on('pointerout', () => {
-      this.playButton?.setScale(1.0);
+      this.buttonContainer?.setScale(1.0);
       this.playButton?.clearTint();
+      // Redesenhar o fundo com cor original
+      this.playButtonBg?.clear();
+      this.playButtonBg?.fillStyle(0x4CAF50, 1);
+      this.playButtonBg?.fillRoundedRect(
+        -buttonWidth / 2,
+        -buttonHeight / 2,
+        buttonWidth,
+        buttonHeight,
+        12
+      );
     });
 
     this.playButton.on('pointerdown', () => {
       this.startGame();
     });
 
-    // Animação do botão (pulsando suavemente)
+    // Animação do botão (pulsando suavemente) - agora no container
     this.tweens.add({
-      targets: this.playButton,
+      targets: this.buttonContainer,
       scaleX: 1.05,
       scaleY: 1.05,
       duration: 1500,

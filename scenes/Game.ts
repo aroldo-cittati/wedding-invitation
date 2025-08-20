@@ -653,27 +653,100 @@ export class Game extends Phaser.Scene {
     this.gameOverOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75).setDepth(200).setInteractive();
     this.gameOverTitle = this.add.text(width / 2, height / 2 - 30, 'GAME OVER', { font: '28px Arial', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
     
+    // Fundo do botão Jogar Novamente
+    const playAgainBg = this.add.graphics();
+    playAgainBg.fillStyle(0x4CAF50, 1);
+    const playAgainWidth = 200;
+    const playAgainHeight = 40;
+    playAgainBg.fillRoundedRect(
+      width / 2 - playAgainWidth / 2,
+      height / 2 + 20 - playAgainHeight / 2,
+      playAgainWidth,
+      playAgainHeight,
+      8
+    );
+    playAgainBg.setDepth(201);
+
     // Botão Jogar Novamente
     const playAgainButton = this.add.text(width / 2, height / 2 + 20, '🔄 JOGAR NOVAMENTE', {
       font: 'bold 16px Arial',
       color: '#ffffff',
-      backgroundColor: '#4CAF50',
       padding: { x: 15, y: 8 }
-    }).setOrigin(0.5).setDepth(201).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+
+    // Fundo do botão Menu
+    const menuBg = this.add.graphics();
+    menuBg.fillStyle(0x2196F3, 1);
+    const menuWidth = 120;
+    const menuHeight = 40;
+    menuBg.fillRoundedRect(
+      width / 2 - menuWidth / 2,
+      height / 2 + 80 - menuHeight / 2,
+      menuWidth,
+      menuHeight,
+      8
+    );
+    menuBg.setDepth(201);
 
     // Botão Menu
-    const menuButton = this.add.text(width / 2, height / 2 + 60, '🏠 MENU', {
+    const menuButton = this.add.text(width / 2, height / 2 + 80, '🏠 MENU', {
       font: 'bold 16px Arial',
       color: '#ffffff',
-      backgroundColor: '#2196F3',
       padding: { x: 15, y: 8 }
-    }).setOrigin(0.5).setDepth(201).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
 
     // Efeitos dos botões
-    playAgainButton.on('pointerover', () => playAgainButton.setTint(0xffff99));
-    playAgainButton.on('pointerout', () => playAgainButton.clearTint());
-    menuButton.on('pointerover', () => menuButton.setTint(0xffff99));
-    menuButton.on('pointerout', () => menuButton.clearTint());
+    playAgainButton.on('pointerover', () => {
+      playAgainButton.setTint(0xffff99);
+      playAgainBg.clear();
+      playAgainBg.fillStyle(0x66BB6A, 1);
+      playAgainBg.fillRoundedRect(
+        width / 2 - playAgainWidth / 2,
+        height / 2 + 20 - playAgainHeight / 2,
+        playAgainWidth,
+        playAgainHeight,
+        8
+      );
+    });
+    
+    playAgainButton.on('pointerout', () => {
+      playAgainButton.clearTint();
+      playAgainBg.clear();
+      playAgainBg.fillStyle(0x4CAF50, 1);
+      playAgainBg.fillRoundedRect(
+        width / 2 - playAgainWidth / 2,
+        height / 2 + 20 - playAgainHeight / 2,
+        playAgainWidth,
+        playAgainHeight,
+        8
+      );
+    });
+
+    menuButton.on('pointerover', () => {
+      menuButton.setTint(0xffff99);
+      menuBg.clear();
+      menuBg.fillStyle(0x42A5F5, 1);
+      menuBg.fillRoundedRect(
+        width / 2 - menuWidth / 2,
+        height / 2 + 80 - menuHeight / 2,
+        menuWidth,
+        menuHeight,
+        8
+      );
+    });
+    
+    menuButton.on('pointerout', () => {
+      menuButton.clearTint();
+      menuBg.clear();
+      menuBg.fillStyle(0x2196F3, 1);
+      menuBg.fillRoundedRect(
+        width / 2 - menuWidth / 2,
+        height / 2 + 80 - menuHeight / 2,
+        menuWidth,
+        menuHeight,
+        8
+      );
+    });
 
     // Ações dos botões
     playAgainButton.on('pointerdown', () => {
