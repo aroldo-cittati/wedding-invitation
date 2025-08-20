@@ -311,8 +311,21 @@ export class Game extends Phaser.Scene {
     const children = this.obstacles.getChildren() as Phaser.GameObjects.GameObject[];
     for (const obj of children) {
       const s = obj as Phaser.Physics.Arcade.Sprite;
-      // casar velocidade em pixels com o deslocamento visual da estrada (tilePositionY * tileScaleY)
-      s.y += this.gameSpeed * this.road.tileScaleY;
+      
+      // Calcular velocidade do movimento vertical
+      let verticalSpeed = this.gameSpeed * this.road.tileScaleY;
+      
+      // Para carros inimigos, aplicar velocidade fixa um pouco mais lenta
+      if (s.getData('isDriving')) {
+        const relativeSpeed = s.getData('relativeSpeed') || 0.75;
+        
+        // Carros mais lentos que o jogador: velocidade MENOR na tela
+        // Isso faz com que pareçam ir para frente, mas sendo ultrapassados pelo jogador
+        verticalSpeed = this.gameSpeed * this.road.tileScaleY * relativeSpeed;
+      }
+      
+      s.y += verticalSpeed;
+      
       // remover ao sair da tela
       if (s.y - s.displayHeight / 2 > this.cameras.main.height + 20) {
         s.destroy();
@@ -443,6 +456,12 @@ export class Game extends Phaser.Scene {
       // inimigos um pouco menores que o player
       const targetH = Math.round(height * 0.12);
       sprite.setScale(targetH / sprite.height);
+      
+      // Adicionar propriedades de movimento para carros inimigos parecerem dirigindo
+      sprite.setData('isDriving', true);
+      
+      // Todos os carros têm a mesma velocidade: um pouco mais lento que o jogador
+      sprite.setData('relativeSpeed', 0.55); // 75% da velocidade base (mais lento)
     }
 
   // Agora que o sprite está escalado, calcule limites seguros dentro da pista
