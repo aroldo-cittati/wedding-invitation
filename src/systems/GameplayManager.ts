@@ -1,7 +1,7 @@
 // GameplayManager.ts - Gerenciamento da lógica principal do jogo
 import type { GameConfiguration } from './GameConfig';
 import type { GameState } from './GameState';
-import type { SpawnManager, CheckpointItem } from './SpawnManager';
+import type { CheckpointItem, SpawnManager } from './SpawnManager';
 
 export class GameplayManager {
   private scene: Phaser.Scene;

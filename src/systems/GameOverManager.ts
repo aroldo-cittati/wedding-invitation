@@ -1,6 +1,6 @@
 // GameOverManager.ts - Sistema de gerenciamento de Game Over
-import type { GameState } from './GameState';
 import type { AudioManager } from './AudioManager';
+import type { GameState } from './GameState';
 
 export class GameOverManager {
   private scene: Phaser.Scene;

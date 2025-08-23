@@ -1,12 +1,12 @@
 // Game.ts - Cena principal do jogo (refatorada)
-import { DEFAULT_CONFIG } from '../src/systems/GameConfig';
-import { GameState } from '../src/systems/GameState';
-import { SpawnManager } from '../src/systems/SpawnManager';
-import { GameplayManager } from '../src/systems/GameplayManager';
-import { CollisionManager } from '../src/systems/CollisionManager';
-import { HUDManager } from '../src/systems/HUDManager';
 import { AudioManager } from '../src/systems/AudioManager';
+import { CollisionManager } from '../src/systems/CollisionManager';
+import { DEFAULT_CONFIG } from '../src/systems/GameConfig';
 import { GameOverManager } from '../src/systems/GameOverManager';
+import { GameplayManager } from '../src/systems/GameplayManager';
+import { GameState } from '../src/systems/GameState';
+import { HUDManager } from '../src/systems/HUDManager';
+import { SpawnManager } from '../src/systems/SpawnManager';
 
 export class Game extends Phaser.Scene {
   // Sistemas de gerenciamento
