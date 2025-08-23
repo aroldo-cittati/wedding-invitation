@@ -203,22 +203,22 @@ export class GameplayManager {
   private checkCheckpointSpawning(): void {
     const { stats, checkpoints } = this.state;
     
-    // Checkpoint 1: Chave
+    // Checkpoint 1: Item1
     if (!checkpoints.cp1Spawned && stats.distanceTraveled >= this.config.cp1Distance) {
       checkpoints.cp1Spawned = true;
-      this.spawnManager.spawnCheckpoint('key');
+      this.spawnManager.spawnCheckpoint('item1');
     }
     
-    // Checkpoint 2: Mapa
+    // Checkpoint 2: Item2
     if (!checkpoints.cp2Spawned && stats.distanceTraveled >= this.config.cp2Distance) {
       checkpoints.cp2Spawned = true;
-      this.spawnManager.spawnCheckpoint('map');
+      this.spawnManager.spawnCheckpoint('item2');
     }
     
-    // Checkpoint 3: Ticket
+    // Checkpoint 3: Item3
     if (!checkpoints.cp3Spawned && stats.distanceTraveled >= this.config.cp3Distance) {
       checkpoints.cp3Spawned = true;
-      this.spawnManager.spawnCheckpoint('ticket');
+      this.spawnManager.spawnCheckpoint('item3');
     }
     
     // Goal: se todos os itens foram coletados

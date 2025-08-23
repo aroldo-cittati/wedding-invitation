@@ -1,8 +1,8 @@
 // GameState.ts - Gerenciamento do estado do jogo
 export interface Inventory {
-  key: boolean;
-  map: boolean;
-  ticket: boolean;
+  item1: boolean;
+  item2: boolean;
+  item3: boolean;
 }
 
 export interface GameStats {
@@ -33,7 +33,7 @@ export class GameState {
   public slowDownUntil: number = 0;
   
   // Inventário
-  public inventory: Inventory = { key: false, map: false, ticket: false };
+  public inventory: Inventory = { item1: false, item2: false, item3: false };
   
   // Estatísticas
   public stats: GameStats = {
@@ -69,7 +69,7 @@ export class GameState {
     this.invincible = false;
     this.slowDownUntil = 0;
     
-    this.inventory = { key: false, map: false, ticket: false };
+    this.inventory = { item1: false, item2: false, item3: false };
     
     this.stats = {
       hits: 0,
@@ -88,7 +88,7 @@ export class GameState {
   }
 
   public hasAllItems(): boolean {
-    return this.inventory.key && this.inventory.map && this.inventory.ticket;
+    return this.inventory.item1 && this.inventory.item2 && this.inventory.item3;
   }
 
   public collectItem(item: keyof Inventory): void {

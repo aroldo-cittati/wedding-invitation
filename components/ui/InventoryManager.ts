@@ -1,18 +1,18 @@
-export type InventoryItem = 'key' | 'map' | 'ticket';
+export type InventoryItem = 'item1' | 'item2' | 'item3';
 
 export interface InventoryState {
-  key: boolean;
-  map: boolean;
-  ticket: boolean;
+  item1: boolean;
+  item2: boolean;
+  item3: boolean;
 }
 
 export class InventoryManager {
-  private inventory: InventoryState = { key: false, map: false, ticket: false };
+  private inventory: InventoryState = { item1: false, item2: false, item3: false };
 
   constructor() {}
 
   reset(): void {
-    this.inventory = { key: false, map: false, ticket: false };
+    this.inventory = { item1: false, item2: false, item3: false };
   }
 
   collect(item: InventoryItem): void {
@@ -28,6 +28,6 @@ export class InventoryManager {
   }
 
   hasAllItems(): boolean {
-    return this.inventory.key && this.inventory.map && this.inventory.ticket;
+    return this.inventory.item1 && this.inventory.item2 && this.inventory.item3;
   }
 }

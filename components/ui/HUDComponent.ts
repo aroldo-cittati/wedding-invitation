@@ -12,9 +12,9 @@ export class HUDComponent {
   private scene: Phaser.Scene;
   private hudContainer!: Phaser.GameObjects.Container;
   private hudBackground!: Phaser.GameObjects.Graphics;
-  private icons!: { key: Phaser.GameObjects.Image; map: Phaser.GameObjects.Image; ticket: Phaser.GameObjects.Image };
+  private icons!: { item1: Phaser.GameObjects.Image; item2: Phaser.GameObjects.Image; item3: Phaser.GameObjects.Image };
   private livesText!: Phaser.GameObjects.Text;
-  private iconOriginalScales!: { key: number; map: number; ticket: number };
+  private iconOriginalScales!: { item1: number; item2: number; item3: number };
   private config: HUDConfig;
 
   constructor(scene: Phaser.Scene, config?: Partial<HUDConfig>) {
@@ -63,27 +63,27 @@ export class HUDComponent {
     const iconsY = -hudHeight / 2 + padding + iconSize / 2;
     
     const positions = {
-      key: startX,
-      map: startX + iconSize + gap,
-      ticket: startX + (iconSize + gap) * 2
+      item1: startX,
+      item2: startX + iconSize + gap,
+      item3: startX + (iconSize + gap) * 2
     };
 
-    const keyIcon = this.scene.add.image(positions.key, iconsY, 'iconKey').setOrigin(0.5);
-    const mapIcon = this.scene.add.image(positions.map, iconsY, 'iconMap').setOrigin(0.5);
-    const ticketIcon = this.scene.add.image(positions.ticket, iconsY, 'iconTicket').setOrigin(0.5);
+    const item1Icon = this.scene.add.image(positions.item1, iconsY, 'item1_icon').setOrigin(0.5);
+    const item2Icon = this.scene.add.image(positions.item2, iconsY, 'item2_icon').setOrigin(0.5);
+    const item3Icon = this.scene.add.image(positions.item3, iconsY, 'item3_icon').setOrigin(0.5);
     
-    const keyScale = iconSize / keyIcon.height;
-    const mapScale = iconSize / mapIcon.height;
-    const ticketScale = iconSize / ticketIcon.height;
+    const item1Scale = iconSize / item1Icon.height;
+    const item2Scale = iconSize / item2Icon.height;
+    const item3Scale = iconSize / item3Icon.height;
     
-    keyIcon.setScale(keyScale);
-    mapIcon.setScale(mapScale);
-    ticketIcon.setScale(ticketScale);
+    item1Icon.setScale(item1Scale);
+    item2Icon.setScale(item2Scale);
+    item3Icon.setScale(item3Scale);
     
-    this.iconOriginalScales = { key: keyScale, map: mapScale, ticket: ticketScale };
-    this.icons = { key: keyIcon, map: mapIcon, ticket: ticketIcon };
+    this.iconOriginalScales = { item1: item1Scale, item2: item2Scale, item3: item3Scale };
+    this.icons = { item1: item1Icon, item2: item2Icon, item3: item3Icon };
     
-    this.hudContainer.add([keyIcon, mapIcon, ticketIcon]);
+    this.hudContainer.add([item1Icon, item2Icon, item3Icon]);
   }
 
   private createLivesText(): void {
@@ -107,9 +107,9 @@ export class HUDComponent {
   }
 
   updateInventory(inventory: InventoryState): void {
-    this.updateIconState(this.icons.key, inventory.key);
-    this.updateIconState(this.icons.map, inventory.map);
-    this.updateIconState(this.icons.ticket, inventory.ticket);
+    this.updateIconState(this.icons.item1, inventory.item1);
+    this.updateIconState(this.icons.item2, inventory.item2);
+    this.updateIconState(this.icons.item3, inventory.item3);
   }
 
   private updateIconState(icon: Phaser.GameObjects.Image, collected: boolean): void {
@@ -122,9 +122,9 @@ export class HUDComponent {
     const targetAlpha = collected ? collectedAlpha : unCollectedAlpha;
     
     let originalScale = 1;
-    if (icon === this.icons.key) originalScale = this.iconOriginalScales.key;
-    else if (icon === this.icons.map) originalScale = this.iconOriginalScales.map;
-    else if (icon === this.icons.ticket) originalScale = this.iconOriginalScales.ticket;
+    if (icon === this.icons.item1) originalScale = this.iconOriginalScales.item1;
+    else if (icon === this.icons.item2) originalScale = this.iconOriginalScales.item2;
+    else if (icon === this.icons.item3) originalScale = this.iconOriginalScales.item3;
     
     if (collected && icon.tint !== collectedTint) {
       this.scene.tweens.add({

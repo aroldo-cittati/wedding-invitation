@@ -4,7 +4,7 @@ export interface UIEvent {
 }
 
 export interface UIEventHandlers {
-  'ui-checkpoint': (payload: { item: 'key' | 'map' | 'ticket' }) => void;
+  'ui-checkpoint': (payload: { item: 'item1' | 'item2' | 'item3' }) => void;
   'ui-reset-inventory': () => void;
   'ui-lives': (payload: { maxLives: number; hits: number }) => void;
   'ui-invite': () => void;

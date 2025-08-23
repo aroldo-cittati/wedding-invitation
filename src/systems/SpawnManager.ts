@@ -3,7 +3,7 @@ import type { GameConfiguration } from './GameConfig';
 import type { GameState } from './GameState';
 
 export type ObstacleType = 'carEnemy1' | 'carEnemy2' | 'pothole';
-export type CheckpointItem = 'key' | 'map' | 'ticket';
+export type CheckpointItem = 'item1' | 'item2' | 'item3';
 
 export class SpawnManager {
   private scene: Phaser.Scene;

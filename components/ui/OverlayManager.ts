@@ -276,23 +276,23 @@ export class OverlayManager {
 
   private getItemConfig(item: InventoryItem): ItemConfig {
     const configs: Record<InventoryItem, ItemConfig> = {
-      key: {
-        title: 'CHAVE ENCONTRADA!',
-        message: 'Você encontrou a chave mágica!\nEla será útil no final da jornada.',
+      item1: {
+        title: 'ITEM 1 ENCONTRADO!',
+        message: 'Você encontrou o primeiro item!\nEle será útil no final da jornada.',
         color: '#f39c12',
-        iconKey: 'iconKey'
+        iconKey: 'item1_icon'
       },
-      map: {
-        title: 'MAPA DESCOBERTO!',
-        message: 'Um mapa antigo foi revelado!\nEle mostra o caminho para o destino.',
+      item2: {
+        title: 'ITEM 2 DESCOBERTO!',
+        message: 'O segundo item foi revelado!\nVocê está progredindo bem.',
         color: '#27ae60',
-        iconKey: 'iconMap'
+        iconKey: 'item2_icon'
       },
-      ticket: {
-        title: 'INGRESSO OBTIDO!',
-        message: 'Você conquistou o ingresso especial!\nAgora você tem tudo que precisa!',
+      item3: {
+        title: 'ITEM 3 OBTIDO!',
+        message: 'Você conquistou o terceiro item!\nAgora você tem tudo que precisa!',
         color: '#e74c3c',
-        iconKey: 'iconTicket'
+        iconKey: 'item3_icon'
       }
     };
 
@@ -347,7 +347,7 @@ export class OverlayManager {
       .setAlpha(0);
 
     const subtitle = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 30, 
-      'Você usou a chave, o mapa e o ingresso e desbloqueou o casamento!',
+      'Você usou todos os itens e desbloqueou o casamento!',
       { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
       .setOrigin(0.5)
       .setDepth(204)
