@@ -1,11 +1,11 @@
 // UI.ts - Cena de interface do usuário refatorada
 import type { InventoryItem } from '../components/ui';
 import {
-  HUDComponent,
-  InventoryManager,
-  OverlayManager,
-  SoundButtonComponent,
-  UIEventManager
+    HUDComponent,
+    InventoryManager,
+    OverlayManager,
+    SoundButtonComponent,
+    UIEventManager
 } from '../components/ui';
 import { INVITE } from '../config/invite';
 
