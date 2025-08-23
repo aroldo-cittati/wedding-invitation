@@ -436,12 +436,39 @@ export class OverlayManager {
         .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15);
     });
 
-    clickArea.on('pointerdown', () => {
+  // Use pointerup to improve compatibility with iOS/Safari touch activation
+  clickArea.on('pointerup', () => {
       if (!inviteUrl) return;
-      const win = window.open(inviteUrl, '_blank');
-      if (!win) {
-        window.location.href = inviteUrl;
+
+      // Tenta abrir em nova aba/janela. Usa noopener/noreferrer para melhorar a segurança
+      // e aumentar a probabilidade do navegador tratar como ação do usuário.
+      try {
+        const win = window.open(inviteUrl, '_blank', 'noopener,noreferrer');
+        if (win && typeof (win as Window).focus === 'function') {
+          (win as Window).focus();
+          return;
+        }
+      } catch (e) {
+        // ignore and continue to fallbacks
       }
+
+      // Fallback: criar um elemento <a> e acioná-lo programaticamente. Alguns navegadores
+      // aceitam isso quando o window.open é bloqueado.
+      try {
+        const a = document.createElement('a');
+        a.href = inviteUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        // Anexa ao body pois alguns navegadores exigem que o elemento esteja no DOM
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return;
+      } catch (e) {
+        // fallback final: navegar na mesma janela
+      }
+
+      window.location.href = inviteUrl;
     });
   }
 

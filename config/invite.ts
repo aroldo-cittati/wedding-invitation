@@ -1,8 +1,8 @@
 // invite.ts - Configuração do convite
 export const INVITE = {
-  coupleNames: "Nome & Nome",
-  date: "10/11/2025",
-  time: "16:00",
-  addressText: "Rua Exemplo, 123 - Bairro, Cidade/UF",
+  coupleNames: "Aroldo & Eli",
+  date: "14/09/2025",
+  time: "13:00",
+  addressText: "Lounge Open Sky - R. Andaraí, 2384, Candeias, Jaboatão",
   inviteUrl: "https://convite.lista.link"
 };
