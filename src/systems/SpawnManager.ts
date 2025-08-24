@@ -173,7 +173,10 @@ export class SpawnManager {
   public spawnCheckpoint(item: CheckpointItem): void {
     const { width } = this.scene.cameras.main;
     const offset = 50;
-    const sprite = this.checkpoints.create(width - offset, -40, 'checkpointSign') as Phaser.Physics.Arcade.Sprite;
+    
+    // Usar a imagem correspondente ao item do checkpoint
+    const textureKey = item; // 'item1', 'item2', ou 'item3'
+    const sprite = this.checkpoints.create(width - offset, -40, textureKey) as Phaser.Physics.Arcade.Sprite;
     
     sprite.setOrigin(0.5, 0.5);
     const targetHeight = Math.round(this.screenHeight * this.config.checkpointHeight);

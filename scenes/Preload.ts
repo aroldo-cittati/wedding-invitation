@@ -38,6 +38,10 @@ export class Preload extends Phaser.Scene {
     this.load.image('item1_icon', 'assets/item1_icon.png');
     this.load.image('item2_icon', 'assets/item2_icon.png');
     this.load.image('item3_icon', 'assets/item3_icon.png');
+    // Carregar imagens dos checkpoints (item1.png, item2.png, item3.png)
+    this.load.image('item1', 'assets/item1.png');
+    this.load.image('item2', 'assets/item2.png');
+    this.load.image('item3', 'assets/item3.png');
     
     // Carregar áudio
     this.load.audio('backgroundMusic', 'assets/sound.m4a');
