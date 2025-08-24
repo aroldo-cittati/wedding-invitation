@@ -43,7 +43,7 @@ export class MenuHeader {
     this.scene.add.text(
       screenWidth / 2, 
       headerY + Math.round(screenHeight * 0.06), 
-      'Uma jornada até o altar', 
+      'A grande jornada', 
       {
         font: `bold ${Math.round(screenHeight * MENU_CONFIG.HEADER.SUBTITLE_SCALE)}px Arial`,
         color: '#e0e0e0',
