@@ -4,15 +4,15 @@ import {
   MenuAudioManager,
   MenuBackground,
   MenuButton,
-  MenuHeader,
-  MenuHelpModal
+  MenuHeader
 } from './menu/index';
+import { OverlayManager } from '../components/ui';
 
 export class Menu extends Phaser.Scene {
   private background!: MenuBackground;
   private header!: MenuHeader;
   private audioManager!: MenuAudioManager;
-  private helpModal?: MenuHelpModal;
+  private overlayManager!: OverlayManager;
 
   constructor() {
     super('Menu');
@@ -43,7 +43,8 @@ export class Menu extends Phaser.Scene {
     this.audioManager = new MenuAudioManager(this);
     this.audioManager.initialize();
 
-    this.createActionButtons();
+  this.overlayManager = new OverlayManager(this);
+  this.createActionButtons();
   }
 
   private createActionButtons(): void {
@@ -69,7 +70,7 @@ export class Menu extends Phaser.Scene {
       label: 'ℹ COMO JOGAR',
       color: MENU_CONFIG.COLORS.SECONDARY,
       colorHover: MENU_CONFIG.COLORS.SECONDARY_HOVER,
-      onClick: () => this.openHelp()
+  onClick: () => this.openHelp()
     });
   }
 
@@ -111,10 +112,19 @@ export class Menu extends Phaser.Scene {
   }
 
   private openHelp(): void {
-    if (!this.helpModal) {
-      this.helpModal = new MenuHelpModal(this);
-    }
-    this.helpModal.show();
+    const body =
+      '• Toque e arraste sobre o carro para dirigir.\n' +
+      '• Desvie de carros e buracos.\n' +
+      '• Colete os itens nas placas.\n' +
+      '• Após coletar tudo, chegue no seu destino.';
+
+    const colorHex = '#' + MENU_CONFIG.COLORS.SECONDARY.toString(16).padStart(6, '0');
+    this.overlayManager.showModal({
+      title: 'COMO JOGAR',
+      body,
+      buttonText: 'Fechar',
+      color: colorHex
+    });
   }
 
   private startGame(): void {
@@ -144,8 +154,8 @@ export class Menu extends Phaser.Scene {
     if (this.audioManager) {
       this.audioManager.destroy();
     }
-    if (this.helpModal) {
-      this.helpModal = undefined;
+    if (this.overlayManager) {
+      // não precisa destruir explicitamente por enquanto
     }
   }
 }

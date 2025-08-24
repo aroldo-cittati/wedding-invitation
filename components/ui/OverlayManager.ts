@@ -107,9 +107,13 @@ export class OverlayManager {
       { font: 'bold 20px Arial', color: '#ffffff', shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2 } })
       .setOrigin(0.5)
       .setDepth(105)
-      .setAlpha(0);
+  .setAlpha(0)
+  .setInteractive({ useHandCursor: true });
 
-    return { shadow: buttonShadow, graphics: buttonGraphics, text: buttonText, handler };
+  // tornar sombra interativa para captar pointerup (não altera aparência)
+  try { (buttonShadow as any).setInteractive && (buttonShadow as any).setInteractive(); } catch (e) {}
+
+  return { shadow: buttonShadow, graphics: buttonGraphics, text: buttonText, handler };
   }
 
   /**
@@ -246,7 +250,9 @@ export class OverlayManager {
             duration: 300,
             ease: 'Power2',
             onComplete: () => {
-              allElements.forEach(element => element.destroy());
+              allElements.filter(Boolean).forEach((element: any) => {
+                try { element.destroy(); } catch (e) { /* ignore */ }
+              });
               if (emitOnClose) this.scene.game.events.emit(emitOnClose);
             }
           });
