@@ -289,8 +289,8 @@ export class OverlayManager {
         iconKey: 'item2_icon'
       },
       item3: {
-        title: 'PESSOA IMPORTANTE!',
-        message: 'Você encontrou alguém muito importante!\nEssa pessoa também precisa ir ao evento. Leve-a com você!',
+        title: 'INGRESSO ENCONTRADO!',
+        message: 'Você encontrou um ingresso especial para o evento!\nEste ingresso é necessário para a entrada.',
         color: '#e74c3c',
         iconKey: 'item3_icon'
       }
@@ -346,8 +346,8 @@ export class OverlayManager {
       .setDepth(204)
       .setAlpha(0);
 
-    const subtitle = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 30, 
-      'Parabéns! Você trouxe Elizangela, Aroldo e o Juiz de Paz!\nAgora o casamento pode acontecer! 💕',
+    const subtitle = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 50, 
+      'Parabéns! Você trouxe Aroldo e Elizangela. \n O ingresso encontrado dará acesso a um grande evento que acontecerá em breve.',
       { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
       .setOrigin(0.5)
       .setDepth(204)

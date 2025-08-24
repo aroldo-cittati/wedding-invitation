@@ -17,7 +17,7 @@ export class CarPassengersManager {
   // Referência do carro do jogador
   private carPlayer!: Phaser.Physics.Arcade.Sprite;
   
-  // Ícones dos passageiros próximos ao carro
+  // Ícones dos itens coletados próximos ao carro
   private passengerIcons: Map<CheckpointItem, PassengerIcon> = new Map();
   
   // Configurações de posicionamento
@@ -37,14 +37,14 @@ export class CarPassengersManager {
   }
 
   private setupEventListeners(): void {
-    // Escutar quando um passageiro é coletado para mostrar efeito visual
+    // Escutar quando um item é coletado para mostrar efeito visual
     this.scene.game.events.on('passenger-collected', (payload: { item: CheckpointItem }) => {
       this.showCollectionEffect(payload.item);
     });
   }
 
   private createPassengerIcons(): void {
-    // Criar ícones para cada item (inicialmente invisíveis)
+    // Criar ícones para cada item coletado (passageiros e ingresso)
     const items: CheckpointItem[] = ['item1', 'item2', 'item3'];
     
     for (const item of items) {
@@ -150,17 +150,17 @@ export class CarPassengersManager {
     const verticalOffset = carHeight * 0.2; // Reduzindo a distância vertical
 
     return {
-      // Item1: lado esquerdo do carro
+      // Item1 (Elizangela): lado esquerdo do carro
       item1: {
         x: carX - horizontalOffset,
         y: carY - verticalOffset
       },
-      // Item2: lado direito do carro
+      // Item2 (Aroldo): lado direito do carro
       item2: {
         x: carX + horizontalOffset,
         y: carY - verticalOffset
       },
-      // Item3: centro na parte inferior do carro
+      // Item3 (Ingresso): centro na parte inferior do carro
       item3: {
         x: carX,
         y: carY + carHeight * 0.3 // Movendo um pouco mais para baixo
