@@ -245,6 +245,9 @@ export class GameplayManager {
     // Atualizar inventário
     this.state.collectItem(item);
 
+    // Emitir evento para que o CarPassengersManager mostre o efeito
+    this.scene.game.events.emit('passenger-collected', { item });
+
     // Se todos os itens foram coletados
     if (this.state.hasAllItems() && !this.state.goalSpawned) {
       this.state.checkpoints.lastCheckpointCollected = this.state.stats.distanceTraveled;

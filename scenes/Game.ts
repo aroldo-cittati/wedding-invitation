@@ -1,5 +1,6 @@
 // Game.ts - Cena principal do jogo (refatorada)
 import { AudioManager } from '../src/systems/AudioManager';
+import { CarPassengersManager } from '../src/systems/CarPassengersManager';
 import { CollisionManager } from '../src/systems/CollisionManager';
 import { DEFAULT_CONFIG } from '../src/systems/GameConfig';
 import { GameOverManager } from '../src/systems/GameOverManager';
@@ -18,6 +19,7 @@ export class Game extends Phaser.Scene {
   private hudManager!: HUDManager;
   private audioManager!: AudioManager;
   private gameOverManager!: GameOverManager;
+  private carPassengersManager!: CarPassengersManager;
 
   // Componentes principais do jogo
   private road!: Phaser.GameObjects.TileSprite;
@@ -79,6 +81,7 @@ export class Game extends Phaser.Scene {
     this.hudManager = new HUDManager(this, this.config, this.state);
     this.audioManager = new AudioManager(this, this.config, this.state);
     this.gameOverManager = new GameOverManager(this, this.state, this.audioManager);
+    this.carPassengersManager = new CarPassengersManager(this, this.config, this.state);
   }
   private createRoad(width: number, height: number): void {
     // Criar estrada (tileSprite) - ocupando a tela toda
@@ -206,6 +209,7 @@ export class Game extends Phaser.Scene {
     this.hudManager.initialize();
     this.audioManager.initialize();
     this.gameOverManager.initialize();
+    this.carPassengersManager.initialize(this.carPlayer);
   }
 
   update(): void {
@@ -214,6 +218,9 @@ export class Game extends Phaser.Scene {
     
     // Atualizar HUD
     this.hudManager.update();
+    
+    // Atualizar ícones dos passageiros próximos ao carro
+    this.carPassengersManager.update();
   }
 
   private onCheckpointCollision: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
@@ -234,5 +241,6 @@ export class Game extends Phaser.Scene {
     this.hudManager?.destroy();
     this.audioManager?.destroy();
     this.gameOverManager?.destroy();
+    this.carPassengersManager?.destroy();
   }
 }

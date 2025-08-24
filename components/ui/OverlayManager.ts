@@ -289,7 +289,7 @@ export class OverlayManager {
         iconKey: 'item2_icon'
       },
       item3: {
-        title: 'PESSOA IMPORTANTE ENCONTRADA!',
+        title: 'PESSOA IMPORTANTE!',
         message: 'Você encontrou alguém muito importante!\nEssa pessoa também precisa ir ao evento. Leve-a com você!',
         color: '#e74c3c',
         iconKey: 'item3_icon'
