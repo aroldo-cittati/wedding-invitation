@@ -142,9 +142,13 @@ export class OverlayManager {
       .setDepth(104)
       .setAlpha(0);
 
+    // Ajustar posições dependendo se existe ícone
+    const centerY = height / 2;
+    const hasIcon = !!options.iconKey;
+
     let icon: Phaser.GameObjects.Image | null = null;
-    if (options.iconKey) {
-      icon = this.scene.add.image(width / 2, height / 2 - 60, options.iconKey)
+    if (hasIcon) {
+      icon = this.scene.add.image(width / 2, centerY - 60, options.iconKey!)
         .setOrigin(0.5)
         .setDepth(104)
         .setAlpha(0);
@@ -155,13 +159,17 @@ export class OverlayManager {
       }
     }
 
-    const itemTitle = this.scene.add.text(width / 2, height / 2 - 5, '',
+    // Quando não há ícone, subimos os textos para não deixar um espaço vazio
+    const itemTitleY = hasIcon ? centerY - 5 : centerY - 25;
+    const descriptionY = hasIcon ? centerY + 40 : centerY + 10;
+
+    const itemTitle = this.scene.add.text(width / 2, itemTitleY, '',
       { font: 'bold 20px Arial', color: options.color || '#2c3e50', align: 'center' })
       .setOrigin(0.5)
       .setDepth(104)
       .setAlpha(0);
 
-    const description = this.scene.add.text(width / 2, height / 2 + 40, options.body,
+    const description = this.scene.add.text(width / 2, descriptionY, options.body,
       { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
       .setOrigin(0.5)
       .setDepth(104)
