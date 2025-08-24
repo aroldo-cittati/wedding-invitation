@@ -74,10 +74,10 @@ export const DEFAULT_CONFIG: GameConfiguration = {
   slowDownFactor: 0.6,
   
   // Distâncias dos checkpoints
-  cp1Distance: 1000, // 1000
-  cp2Distance: 3000, // 3000
-  cp3Distance: 6000, // 6000
-  goalSpawnDistance: 1000, // 1000
+  cp1Distance: 100, // 1000
+  cp2Distance: 300, // 3000
+  cp3Distance: 600, // 6000
+  goalSpawnDistance: 100, // 1000
   metersPerPixel: 0.1,
   
   // Segurança entre carros

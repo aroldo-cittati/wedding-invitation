@@ -192,9 +192,9 @@ export class OverlayManager {
       ease: 'Back.easeOut'
     });
 
-    // Animação dos conteúdos
+    // Animação dos conteúdos (genérica)
     this.scene.time.delayedCall(450, () => {
-      this.animateCheckpointContent(elements);
+      this.animateGenericContent(elements);
     });
 
     // Setup do fechamento — usa evento customizável
@@ -247,12 +247,23 @@ export class OverlayManager {
     };
 
     overlay.once('pointerdown', () => closeModal(false));
-    elements.button.graphics.once('pointerdown', () => closeModal(true));
+    // Usar pointerup no botão para melhorar compatibilidade com abertura de janelas
+    elements.button.graphics.once('pointerup', () => closeModal(true));
+    // Cobrir também clique na área do texto ou sombra do botão
+    if (elements.button.text) elements.button.text.once('pointerup', () => closeModal(true));
+    if (elements.button.shadow && typeof (elements.button.shadow as any).setInteractive === 'function') {
+      try {
+        // tornar sombra interativa apenas para captar pointerup
+        (elements.button.shadow as any).setInteractive && (elements.button.shadow as any).once('pointerup', () => closeModal(true));
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 
   // animateCheckpointModal removido — usa animateModal genérico
 
-  private animateCheckpointContent(elements: any): void {
+  private animateGenericContent(elements: any): void {
     // Header e título
     this.scene.tweens.add({
       targets: [elements.header, elements.title],
@@ -261,43 +272,49 @@ export class OverlayManager {
       ease: 'Power2'
     });
 
-    // Ícone com rotação e bounce
-    this.scene.tweens.add({
-      targets: elements.icon,
-      alpha: 1,
-      rotation: 2 * Math.PI,
-      scaleX: 1.2,
-      scaleY: 1.2,
-      duration: 600,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        this.scene.tweens.add({
-          targets: elements.icon,
-          scaleX: 1,
-          scaleY: 1,
-          duration: 200,
-          ease: 'Power2'
-        });
-      }
-    });
+    // Se existir ícone, animá-lo com giro/bounce
+    if (elements.icon) {
+      this.scene.tweens.add({
+        targets: elements.icon,
+        alpha: 1,
+        rotation: 2 * Math.PI,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        duration: 600,
+        ease: 'Bounce.easeOut',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: elements.icon,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 200,
+            ease: 'Power2'
+          });
+        }
+      });
+    }
 
-    // Título do item
-    this.scene.tweens.add({
-      targets: elements.itemTitle,
-      alpha: 1,
-      duration: 300,
-      delay: 200,
-      ease: 'Power2'
-    });
+    // Caso exista itemTitle (checkpoint), mostrá-lo; caso contrário, o title já cobre o texto principal
+    if (elements.itemTitle) {
+      this.scene.tweens.add({
+        targets: elements.itemTitle,
+        alpha: 1,
+        duration: 300,
+        delay: 200,
+        ease: 'Power2'
+      });
+    }
 
-    // Descrição
-    this.scene.tweens.add({
-      targets: elements.description,
-      alpha: 1,
-      duration: 300,
-      delay: 300,
-      ease: 'Power2'
-    });
+    // Descrição / corpo
+    if (elements.description) {
+      this.scene.tweens.add({
+        targets: elements.description,
+        alpha: 1,
+        duration: 300,
+        delay: 300,
+        ease: 'Power2'
+      });
+    }
 
     // Botão com bounce
     this.scene.tweens.add({
@@ -348,148 +365,13 @@ export class OverlayManager {
   }
 
   showInviteOverlay(inviteData: any): void {
-    const { width, height } = this.scene.cameras.main;
-    
-    const overlay = this.createOverlay(width, height);
-    const modal = this.createInviteModal(width, height);
-    const elements = this.createInviteContent(width, height, inviteData);
-    
-    this.animateInviteModal(overlay, modal, elements);
-  }
+    // Usar modal genérico para padronizar
+    const body = `Parabéns! Você trouxe ${inviteData.coupleNames}.\nO ingresso encontrado dará acesso a um grande evento.\n\n📅 ${inviteData.date}  🕐 ${inviteData.time}\n📍 ${inviteData.addressText}`;
 
-  private createInviteModal(width: number, height: number) {
-    const modalWidth = Math.min(width * 0.9, 400);
-    const modalHeight = Math.min(height * 0.85, 500);
-    const borderRadius = 25;
-    
-    const modalShadow = this.scene.add.graphics()
-      .fillStyle(0x000000, 0.4)
-      .fillRoundedRect(width / 2 + 6 - modalWidth / 2, height / 2 + 6 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
-      .setDepth(201);
-
-    const modal = this.scene.add.graphics()
-      .fillStyle(0xffffff, 1)
-      .lineStyle(4, 0x8e44ad)
-      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
-      .strokeRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
-      .setDepth(202);
-
-    return { shadow: modalShadow, modal, width: modalWidth, height: modalHeight };
-  }
-
-  private createInviteContent(width: number, height: number, inviteData: any) {
-    const modalWidth = Math.min(width * 0.9, 400);
-    const modalHeight = Math.min(height * 0.85, 500);
-    const headerHeight = 80;
-    
-    const header = this.scene.add.graphics()
-      .fillStyle(0x8e44ad, 1)
-      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, headerHeight, { tl: 25, tr: 25, bl: 0, br: 0 })
-      .setDepth(203)
-      .setAlpha(0);
-
-    const title = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, `💒 ${inviteData.coupleNames} 💒`, 
-      { font: 'bold 24px Arial', color: '#ffffff', align: 'center' })
-      .setOrigin(0.5)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const subtitle = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 50, 
-      'Parabéns! Você trouxe Aroldo e Elizangela. \n O ingresso encontrado dará acesso a um grande evento que acontecerá em breve.',
-      { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
-      .setOrigin(0.5)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const date = this.scene.add.text(width / 2, height / 2 - 60, `📅 Data: ${inviteData.date}`, 
-      { font: 'bold 18px Arial', color: '#8e44ad' })
-      .setOrigin(0.5)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const time = this.scene.add.text(width / 2, height / 2 - 25, `🕐 Horário: ${inviteData.time}`, 
-      { font: 'bold 18px Arial', color: '#8e44ad' })
-      .setOrigin(0.5)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const addr = this.scene.add.text(width / 2, height / 2 + 20, `📍 ${inviteData.addressText}`,
-      { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
-      .setOrigin(0.5)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const button = this.createInviteButton(width, height, modalHeight, inviteData.inviteUrl);
-
-    return { header, title, subtitle, date, time, addr, button };
-  }
-
-  private createInviteButton(width: number, height: number, modalHeight: number, inviteUrl: string) {
-    const btnWidth = 200;
-    const btnHeight = 50;
-    const btnY = height / 2 + modalHeight / 2 - 70;
-
-    const btnGraphics = this.scene.add.graphics()
-      .fillStyle(0x8e44ad, 1)
-      .lineStyle(2, 0x7d3c98)
-      .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
-      .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
-      .setDepth(204)
-      .setAlpha(0);
-
-    const btnClickArea = this.scene.add.rectangle(width / 2, btnY, btnWidth, btnHeight, 0x000000, 0)
-      .setDepth(206)
-      .setInteractive({ useHandCursor: true })
-      .setAlpha(0);
-
-    const btnText = this.scene.add.text(width / 2, btnY, 'Abrir Convite', 
-      { font: 'bold 18px Arial', color: '#ffffff' })
-      .setOrigin(0.5)
-      .setDepth(205)
-      .setAlpha(0);
-
-    this.setupInviteButtonEffects(btnClickArea, btnGraphics, btnWidth, btnHeight, btnY, width, inviteUrl);
-
-    return { graphics: btnGraphics, clickArea: btnClickArea, text: btnText };
-  }
-
-  private setupInviteButtonEffects(clickArea: Phaser.GameObjects.Rectangle, graphics: Phaser.GameObjects.Graphics, btnWidth: number, btnHeight: number, btnY: number, width: number, inviteUrl: string): void {
-    clickArea.on('pointerover', () => {
-      this.scene.tweens.add({
-        targets: clickArea,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 200,
-        ease: 'Power2'
-      });
-      graphics.clear()
-        .fillStyle(0x7d3c98, 1)
-        .lineStyle(2, 0x6c2d7f)
-        .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
-        .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15);
-    });
-
-    clickArea.on('pointerout', () => {
-      this.scene.tweens.add({
-        targets: clickArea,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 200,
-        ease: 'Power2'
-      });
-      graphics.clear()
-        .fillStyle(0x8e44ad, 1)
-        .lineStyle(2, 0x7d3c98)
-        .fillRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15)
-        .strokeRoundedRect(width / 2 - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 15);
-    });
-
-  // Use pointerup to improve compatibility with iOS/Safari touch activation
-  clickArea.on('pointerup', () => {
+    const openInvite = () => {
+      const inviteUrl = inviteData.inviteUrl;
       if (!inviteUrl) return;
 
-      // Tenta abrir em nova aba/janela. Usa noopener/noreferrer para melhorar a segurança
-      // e aumentar a probabilidade do navegador tratar como ação do usuário.
       try {
         const win = window.open(inviteUrl, '_blank', 'noopener,noreferrer');
         if (win && typeof (win as Window).focus === 'function') {
@@ -497,74 +379,34 @@ export class OverlayManager {
           return;
         }
       } catch (e) {
-        // ignore and continue to fallbacks
+        // ignore
       }
 
-      // Fallback: criar um elemento <a> e acioná-lo programaticamente. Alguns navegadores
-      // aceitam isso quando o window.open é bloqueado.
       try {
         const a = document.createElement('a');
         a.href = inviteUrl;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        // Anexa ao body pois alguns navegadores exigem que o elemento esteja no DOM
         document.body.appendChild(a);
         a.click();
         a.remove();
         return;
       } catch (e) {
-        // fallback final: navegar na mesma janela
+        // fallback
       }
 
-      window.location.href = inviteUrl;
+      window.location.href = inviteData.inviteUrl;
+    };
+
+    this.showModal({
+      title: `💒 ${inviteData.coupleNames} 💒`,
+      body,
+      buttonText: 'Abrir Convite',
+      buttonHandler: openInvite,
+      color: '#8e44ad',
+      emitOnClose: 'ui-invite-closed'
     });
   }
 
-  private animateInviteModal(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any): void {
-    // Fade in do overlay
-    this.scene.tweens.add({
-      targets: overlay,
-      alpha: 0.8,
-      duration: 300,
-      ease: 'Power2'
-    });
-
-    // Animação de entrada do modal
-    modal.modal.setScale(0.1);
-    modal.shadow.setScale(0.1);
-    this.scene.tweens.add({
-      targets: [modal.modal, modal.shadow],
-      scaleX: 1,
-      scaleY: 1,
-      duration: 500,
-      ease: 'Back.easeOut'
-    });
-
-    // Animação dos conteúdos
-    this.scene.time.delayedCall(550, () => {
-      this.animateInviteContent(elements);
-    });
-  }
-
-  private animateInviteContent(elements: any): void {
-    const delays = [0, 200, 400, 500, 600, 800];
-    const targets = [
-      [elements.header, elements.title],
-      [elements.subtitle],
-      [elements.date],
-      [elements.time],
-      [elements.addr],
-      [elements.button.graphics, elements.button.text, elements.button.clickArea]
-    ];
-
-    targets.forEach((target, index) => {
-      this.scene.tweens.add({
-        targets: target,
-        alpha: 1,
-        duration: 300,
-        delay: delays[index],
-        ease: 'Power2'
-      });
-    });
-  }
+  // Métodos específicos de invite removidos — agora showInviteOverlay usa showModal genérico
 }
