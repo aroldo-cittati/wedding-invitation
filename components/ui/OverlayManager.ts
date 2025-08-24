@@ -277,20 +277,20 @@ export class OverlayManager {
   private getItemConfig(item: InventoryItem): ItemConfig {
     const configs: Record<InventoryItem, ItemConfig> = {
       item1: {
-        title: 'ITEM 1 ENCONTRADO!',
-        message: 'Você encontrou o primeiro item!\nEle será útil no final da jornada.',
+        title: 'ELIZANGELA ENCONTRADA!',
+        message: 'Você encontrou a Elizangela na estrada!\nEla precisa de uma carona para um evento especial.',
         color: '#f39c12',
         iconKey: 'item1_icon'
       },
       item2: {
-        title: 'ITEM 2 DESCOBERTO!',
-        message: 'O segundo item foi revelado!\nVocê está progredindo bem.',
+        title: 'AROLDO DESCOBERTO!',
+        message: 'Você encontrou o Aroldo esperando!\nEle também precisa de uma carona para o mesmo lugar.',
         color: '#27ae60',
         iconKey: 'item2_icon'
       },
       item3: {
-        title: 'ITEM 3 OBTIDO!',
-        message: 'Você conquistou o terceiro item!\nAgora você tem tudo que precisa!',
+        title: 'PESSOA IMPORTANTE ENCONTRADA!',
+        message: 'Você encontrou alguém muito importante!\nEssa pessoa também precisa ir ao evento. Leve-a com você!',
         color: '#e74c3c',
         iconKey: 'item3_icon'
       }
@@ -347,7 +347,7 @@ export class OverlayManager {
       .setAlpha(0);
 
     const subtitle = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight + 30, 
-      'Você usou todos os itens e desbloqueou o casamento!',
+      'Parabéns! Você trouxe Elizangela, Aroldo e o Juiz de Paz!\nAgora o casamento pode acontecer! 💕',
       { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
       .setOrigin(0.5)
       .setDepth(204)
