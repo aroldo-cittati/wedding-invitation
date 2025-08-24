@@ -14,6 +14,16 @@ export interface ItemConfig {
   iconKey: string;
 }
 
+export interface ModalOptions {
+  title: string;
+  body: string;
+  buttonText?: string;
+  buttonHandler?: () => void;
+  iconKey?: string;
+  color?: string;
+  emitOnClose?: string; // nome do evento a emitir quando o modal fechar
+}
+
 export class OverlayManager {
   private scene: Phaser.Scene;
   private config: OverlayConfig;
@@ -30,13 +40,15 @@ export class OverlayManager {
   }
 
   showCheckpointOverlay(item: InventoryItem): void {
-    const { width, height } = this.scene.cameras.main;
-    
-    const overlay = this.createOverlay(width, height);
-    const modal = this.createModal(width, height);
-    const elements = this.createCheckpointContent(width, height, item);
-    
-    this.animateCheckpointModal(overlay, modal, elements);
+    const config = this.getItemConfig(item);
+    this.showModal({
+      title: `🎉 CHECKPOINT! 🎉`,
+      body: config.message,
+      buttonText: 'CONTINUAR',
+      iconKey: config.iconKey,
+      color: config.color,
+      emitOnClose: 'ui-checkpoint-closed'
+    });
   }
 
   private createOverlay(width: number, height: number): Phaser.GameObjects.Rectangle {
@@ -67,58 +79,18 @@ export class OverlayManager {
     return { shadow: modalShadow, modal };
   }
 
-  private createCheckpointContent(width: number, height: number, item: InventoryItem) {
-    const modalWidth = Math.min(width * 0.85, this.config.modalMaxWidth);
-    const modalHeight = Math.min(height * 0.65, this.config.modalMaxHeight);
-    const headerHeight = 60;
-    
-    const header = this.scene.add.graphics()
-      .fillStyle(0x3498db, 1)
-      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, headerHeight, { tl: this.config.borderRadius, tr: this.config.borderRadius, bl: 0, br: 0 })
-      .setDepth(103)
-      .setAlpha(0);
+  // createCheckpointContent removido — uso da versão genérica showModal agora
 
-    const title = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, '🎉 CHECKPOINT! 🎉', 
-      { font: 'bold 22px Arial', color: '#ffffff', align: 'center' })
-      .setOrigin(0.5)
-      .setDepth(104)
-      .setAlpha(0);
+  // createContinueButton removido — usar createActionButton para ações customizáveis
 
-    const config = this.getItemConfig(item);
-    
-    const icon = this.scene.add.image(width / 2, height / 2 - 60, config.iconKey)
-      .setOrigin(0.5)
-      .setDepth(104)
-      .setAlpha(0);
-    
-    if (icon.height) {
-      const targetSize = Math.round(height * 0.12);
-      icon.setScale(targetSize / icon.height);
-    }
-
-    const itemTitle = this.scene.add.text(width / 2, height / 2 - 5, config.title, 
-      { font: 'bold 20px Arial', color: config.color, align: 'center' })
-      .setOrigin(0.5)
-      .setDepth(104)
-      .setAlpha(0);
-
-    const description = this.scene.add.text(width / 2, height / 2 + 40, config.message, 
-      { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
-      .setOrigin(0.5)
-      .setDepth(104)
-      .setAlpha(0);
-
-    const button = this.createContinueButton(width, height, modalHeight);
-
-    return { header, title, icon, itemTitle, description, button };
-  }
-
-  private createContinueButton(width: number, height: number, modalHeight: number) {
+  /**
+   * Versão genérica do botão do modal. Recebe texto e um handler opcional.
+   */
+  private createActionButton(width: number, height: number, modalHeight: number, buttonTextStr: string, handler?: () => void) {
     const buttonWidth = 180;
     const buttonHeight = 55;
     const buttonY = height / 2 + modalHeight / 2 - 50;
 
-    // Criar sombra do botão
     const buttonShadow = this.scene.add.graphics()
       .fillStyle(0x000000, 0.3)
       .fillRoundedRect(width / 2 - buttonWidth / 2 + 3, buttonY - buttonHeight / 2 + 3, buttonWidth, buttonHeight, 10)
@@ -131,21 +103,76 @@ export class OverlayManager {
       .setInteractive({ useHandCursor: true })
       .setAlpha(0);
 
-    const buttonText = this.scene.add.text(width / 2, buttonY, 'CONTINUAR', 
+    const buttonText = this.scene.add.text(width / 2, buttonY, buttonTextStr || 'OK',
       { font: 'bold 20px Arial', color: '#ffffff', shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2 } })
       .setOrigin(0.5)
       .setDepth(105)
       .setAlpha(0);
 
-    // Ajustar interatividade do botão
-    buttonGraphics.on('pointerdown', () => {
-      this.scene.game.events.emit('ui-checkpoint-closed');
-    });
-
-    return { shadow: buttonShadow, graphics: buttonGraphics, text: buttonText };
+    return { shadow: buttonShadow, graphics: buttonGraphics, text: buttonText, handler };
   }
 
-  private animateCheckpointModal(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any): void {
+  /**
+   * Abre um modal genérico. Conteúdo: título, body, texto do botão e função do botão.
+   */
+  public showModal(options: ModalOptions): void {
+    const { width, height } = this.scene.cameras.main;
+
+    const overlay = this.createOverlay(width, height);
+    const modal = this.createModal(width, height);
+    const elements = this.createGenericContent(width, height, options);
+
+    this.animateModal(overlay, modal, elements, options.emitOnClose);
+  }
+
+  private createGenericContent(width: number, height: number, options: ModalOptions) {
+    const modalWidth = Math.min(width * 0.85, this.config.modalMaxWidth);
+    const modalHeight = Math.min(height * 0.65, this.config.modalMaxHeight);
+    const headerHeight = 60;
+
+    const header = this.scene.add.graphics()
+      .fillStyle(options.color ? parseInt(options.color.replace('#', ''), 16) : 0x3498db, 1)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, headerHeight, { tl: this.config.borderRadius, tr: this.config.borderRadius, bl: 0, br: 0 })
+      .setDepth(103)
+      .setAlpha(0);
+
+    const title = this.scene.add.text(width / 2, height / 2 - modalHeight / 2 + headerHeight / 2, options.title,
+      { font: 'bold 22px Arial', color: '#ffffff', align: 'center' })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    let icon: Phaser.GameObjects.Image | null = null;
+    if (options.iconKey) {
+      icon = this.scene.add.image(width / 2, height / 2 - 60, options.iconKey)
+        .setOrigin(0.5)
+        .setDepth(104)
+        .setAlpha(0);
+
+      if (icon.height) {
+        const targetSize = Math.round(height * 0.12);
+        icon.setScale(targetSize / icon.height);
+      }
+    }
+
+    const itemTitle = this.scene.add.text(width / 2, height / 2 - 5, '',
+      { font: 'bold 20px Arial', color: options.color || '#2c3e50', align: 'center' })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    const description = this.scene.add.text(width / 2, height / 2 + 40, options.body,
+      { font: '16px Arial', color: '#2c3e50', align: 'center', wordWrap: { width: modalWidth - 40 } })
+      .setOrigin(0.5)
+      .setDepth(104)
+      .setAlpha(0);
+
+    const button = this.createActionButton(width, height, modalHeight, options.buttonText || 'OK', options.buttonHandler);
+
+    return { header, title, icon, itemTitle, description, button };
+  }
+
+  private animateModal(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any, emitOnClose?: string): void {
     // Fade in do overlay
     this.scene.tweens.add({
       targets: overlay,
@@ -170,9 +197,60 @@ export class OverlayManager {
       this.animateCheckpointContent(elements);
     });
 
-    // Setup do fechamento
-    this.setupModalClose(overlay, modal, elements);
+    // Setup do fechamento — usa evento customizável
+    this.setupModalCloseGeneric(overlay, modal, elements, emitOnClose);
   }
+
+  private setupModalCloseGeneric(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any, emitOnClose?: string): void {
+    const allElements = [
+      overlay, modal.shadow, modal.modal, elements.header, elements.title,
+      elements.icon, elements.itemTitle, elements.description,
+      elements.button.graphics, elements.button.text
+    ];
+
+    const closeModal = (fromButton = false) => {
+      // Se veio do botão, invoca handler antes de fechar
+      try {
+        if (fromButton && elements.button && typeof elements.button.handler === 'function') {
+          elements.button.handler();
+        }
+      } catch (e) {
+        // ignorar erros do handler
+      }
+
+      this.scene.tweens.add({
+        targets: [elements.header, elements.title, elements.icon, elements.itemTitle, elements.description, elements.button.graphics, elements.button.text],
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2.easeIn',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: [modal.modal, modal.shadow],
+            scaleX: 0.1,
+            scaleY: 0.1,
+            duration: 300,
+            ease: 'Power2.easeIn'
+          });
+
+          this.scene.tweens.add({
+            targets: overlay,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              allElements.forEach(element => element.destroy());
+              if (emitOnClose) this.scene.game.events.emit(emitOnClose);
+            }
+          });
+        }
+      });
+    };
+
+    overlay.once('pointerdown', () => closeModal(false));
+    elements.button.graphics.once('pointerdown', () => closeModal(true));
+  }
+
+  // animateCheckpointModal removido — usa animateModal genérico
 
   private animateCheckpointContent(elements: any): void {
     // Header e título
@@ -242,45 +320,7 @@ export class OverlayManager {
     });
   }
 
-  private setupModalClose(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any): void {
-    const allElements = [
-      overlay, modal.shadow, modal.modal, elements.header, elements.title,
-      elements.icon, elements.itemTitle, elements.description,
-      elements.button.graphics, elements.button.text
-    ];
-
-    const closeModal = () => {
-      this.scene.tweens.add({
-        targets: [elements.header, elements.title, elements.icon, elements.itemTitle, elements.description, elements.button.graphics, elements.button.text],
-        alpha: 0,
-        duration: 200,
-        ease: 'Power2.easeIn',
-        onComplete: () => {
-          this.scene.tweens.add({
-            targets: [modal.modal, modal.shadow],
-            scaleX: 0.1,
-            scaleY: 0.1,
-            duration: 300,
-            ease: 'Power2.easeIn'
-          });
-
-          this.scene.tweens.add({
-            targets: overlay,
-            alpha: 0,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-              allElements.forEach(element => element.destroy());
-              this.scene.game.events.emit('ui-checkpoint-closed');
-            }
-          });
-        }
-      });
-    };
-
-    overlay.once('pointerdown', closeModal);
-    elements.button.graphics.once('pointerdown', closeModal);
-  }
+  // setupModalClose removido — usa setupModalCloseGeneric
 
   private getItemConfig(item: InventoryItem): ItemConfig {
     const configs: Record<InventoryItem, ItemConfig> = {
