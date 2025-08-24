@@ -50,17 +50,18 @@ export class OverlayManager {
     const modalWidth = Math.min(width * 0.85, this.config.modalMaxWidth);
     const modalHeight = Math.min(height * 0.65, this.config.modalMaxHeight);
     const { borderRadius } = this.config;
-    
+
     const modalShadow = this.scene.add.graphics()
-      .fillStyle(0x000000, 0.3)
-      .fillRoundedRect(width / 2 + 4 - modalWidth / 2, height / 2 + 4 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .fillStyle(0x000000, 0.5)
+      .fillRoundedRect(width / 2 + 6 - modalWidth / 2, height / 2 + 6 - modalHeight / 2, modalWidth, modalHeight, borderRadius * 1.5)
       .setDepth(101);
 
     const modal = this.scene.add.graphics()
       .fillStyle(0xffffff, 1)
-      .lineStyle(3, 0x2c3e50)
-      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
-      .strokeRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius)
+      .fillGradientStyle(0xffffff, 0xf0f0f0, 0xe0e0e0, 0xd0d0d0, 1)
+      .lineStyle(4, 0x2c3e50)
+      .fillRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius * 1.5)
+      .strokeRoundedRect(width / 2 - modalWidth / 2, height / 2 - modalHeight / 2, modalWidth, modalHeight, borderRadius * 1.5)
       .setDepth(102);
 
     return { shadow: modalShadow, modal };
@@ -113,50 +114,35 @@ export class OverlayManager {
   }
 
   private createContinueButton(width: number, height: number, modalHeight: number) {
-    const buttonWidth = 160;
-    const buttonHeight = 50;
-    const buttonY = height / 2 + modalHeight / 2 - 40;
+    const buttonWidth = 180;
+    const buttonHeight = 55;
+    const buttonY = height / 2 + modalHeight / 2 - 50;
 
-    const buttonGraphics = this.scene.add.rectangle(width / 2, buttonY, buttonWidth, buttonHeight, 0x2ecc71, 1)
+    // Criar sombra do botão
+    const buttonShadow = this.scene.add.graphics()
+      .fillStyle(0x000000, 0.3)
+      .fillRoundedRect(width / 2 - buttonWidth / 2 + 3, buttonY - buttonHeight / 2 + 3, buttonWidth, buttonHeight, 10)
+      .setDepth(103)
+      .setAlpha(0);
+
+    const buttonGraphics = this.scene.add.rectangle(width / 2, buttonY, buttonWidth, buttonHeight, 0x2ecc71)
       .setOrigin(0.5)
       .setDepth(104)
       .setInteractive({ useHandCursor: true })
-      .setStrokeStyle(2, 0x27ae60)
       .setAlpha(0);
 
     const buttonText = this.scene.add.text(width / 2, buttonY, 'CONTINUAR', 
-      { font: 'bold 18px Arial', color: '#ffffff' })
+      { font: 'bold 20px Arial', color: '#ffffff', shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2 } })
       .setOrigin(0.5)
       .setDepth(105)
       .setAlpha(0);
 
-    this.setupButtonEffects(buttonGraphics);
-
-    return { graphics: buttonGraphics, text: buttonText };
-  }
-
-  private setupButtonEffects(button: Phaser.GameObjects.Rectangle): void {
-    button.on('pointerover', () => {
-      this.scene.tweens.add({
-        targets: button,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 200,
-        ease: 'Power2'
-      });
-      button.setFillStyle(0x27ae60);
+    // Ajustar interatividade do botão
+    buttonGraphics.on('pointerdown', () => {
+      this.scene.game.events.emit('ui-checkpoint-closed');
     });
 
-    button.on('pointerout', () => {
-      this.scene.tweens.add({
-        targets: button,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 200,
-        ease: 'Power2'
-      });
-      button.setFillStyle(0x2ecc71);
-    });
+    return { shadow: buttonShadow, graphics: buttonGraphics, text: buttonText };
   }
 
   private animateCheckpointModal(overlay: Phaser.GameObjects.Rectangle, modal: any, elements: any): void {
@@ -197,13 +183,24 @@ export class OverlayManager {
       ease: 'Power2'
     });
 
-    // Ícone com rotação
+    // Ícone com rotação e bounce
     this.scene.tweens.add({
       targets: elements.icon,
       alpha: 1,
       rotation: 2 * Math.PI,
+      scaleX: 1.2,
+      scaleY: 1.2,
       duration: 600,
-      ease: 'Power2'
+      ease: 'Bounce.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: elements.icon,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 200,
+          ease: 'Power2'
+        });
+      }
     });
 
     // Título do item
@@ -224,13 +221,24 @@ export class OverlayManager {
       ease: 'Power2'
     });
 
-    // Botão
+    // Botão com bounce
     this.scene.tweens.add({
       targets: [elements.button.graphics, elements.button.text],
       alpha: 1,
-      duration: 300,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: 400,
       delay: 400,
-      ease: 'Power2'
+      ease: 'Bounce.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: [elements.button.graphics, elements.button.text],
+          scaleX: 1,
+          scaleY: 1,
+          duration: 200,
+          ease: 'Power2'
+        });
+      }
     });
   }
 
