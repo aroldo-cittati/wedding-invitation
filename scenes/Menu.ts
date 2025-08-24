@@ -1,4 +1,5 @@
 // Menu.ts - Tela de menu inicial refatorada
+import { OverlayManager } from '../components/ui';
 import {
   MENU_CONFIG,
   MenuAudioManager,
@@ -6,7 +7,6 @@ import {
   MenuButton,
   MenuHeader
 } from './menu/index';
-import { OverlayManager } from '../components/ui';
 
 export class Menu extends Phaser.Scene {
   private background!: MenuBackground;
