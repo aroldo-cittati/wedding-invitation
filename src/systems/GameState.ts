@@ -51,7 +51,6 @@ export class GameState {
   };
   
   // Configurações de interface
-  public showDebugHUD: boolean = false;
   public musicEnabled: boolean = true;
   
   // Controles

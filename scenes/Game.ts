@@ -6,7 +6,6 @@ import { DEFAULT_CONFIG } from '../src/systems/GameConfig';
 import { GameOverManager } from '../src/systems/GameOverManager';
 import { GameplayManager } from '../src/systems/GameplayManager';
 import { GameState } from '../src/systems/GameState';
-import { HUDManager } from '../src/systems/HUDManager';
 import { SpawnManager } from '../src/systems/SpawnManager';
 
 export class Game extends Phaser.Scene {
@@ -16,7 +15,6 @@ export class Game extends Phaser.Scene {
   private spawnManager!: SpawnManager;
   private gameplayManager!: GameplayManager;
   private collisionManager!: CollisionManager;
-  private hudManager!: HUDManager;
   private audioManager!: AudioManager;
   private gameOverManager!: GameOverManager;
   private carPassengersManager!: CarPassengersManager;
@@ -78,7 +76,6 @@ export class Game extends Phaser.Scene {
     this.spawnManager = new SpawnManager(this, this.config, this.state);
     this.gameplayManager = new GameplayManager(this, this.config, this.state, this.spawnManager);
     this.collisionManager = new CollisionManager(this, this.config, this.state);
-    this.hudManager = new HUDManager(this, this.config, this.state);
     this.audioManager = new AudioManager(this, this.config, this.state);
     this.gameOverManager = new GameOverManager(this, this.state, this.audioManager);
     this.carPassengersManager = new CarPassengersManager(this, this.config, this.state);
@@ -206,7 +203,6 @@ export class Game extends Phaser.Scene {
     );
     
     this.collisionManager.initialize(this.carPlayer);
-    this.hudManager.initialize();
     this.audioManager.initialize();
     this.gameOverManager.initialize();
     this.carPassengersManager.initialize(this.carPlayer);
@@ -215,9 +211,6 @@ export class Game extends Phaser.Scene {
   update(): void {
     // Delegar para o sistema de gameplay
     this.gameplayManager.update();
-    
-    // Atualizar HUD
-    this.hudManager.update();
     
     // Atualizar ícones dos passageiros próximos ao carro
     this.carPassengersManager.update();
@@ -238,7 +231,6 @@ export class Game extends Phaser.Scene {
     // Cleanup dos sistemas
     this.spawnManager?.destroy();
     this.gameplayManager?.destroy();
-    this.hudManager?.destroy();
     this.audioManager?.destroy();
     this.gameOverManager?.destroy();
     this.carPassengersManager?.destroy();

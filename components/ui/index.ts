@@ -8,5 +8,5 @@ export type { HUDConfig } from './HUDComponent';
 export type { InventoryItem, InventoryState } from './InventoryManager';
 export type { ItemConfig, OverlayConfig } from './OverlayManager';
 export type { SoundButtonConfig } from './SoundButtonComponent';
-export type { UIEvent, UIEventHandlers } from './UIEventManager';
+export type { UIEventHandlers } from './UIEventManager';
 

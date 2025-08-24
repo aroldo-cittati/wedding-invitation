@@ -1,8 +1,3 @@
-export interface UIEvent {
-  type: string;
-  payload?: any;
-}
-
 export interface UIEventHandlers {
   'ui-checkpoint': (payload: { item: 'item1' | 'item2' | 'item3' }) => void;
   'ui-reset-inventory': () => void;
